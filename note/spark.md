@@ -41,4 +41,31 @@ return [
        ]
 ```
 执行初始化的时候给它打印到日志输出给用户：
-`logging.warn(f'Ingest->{data}')`
+`logging.warn(f'Ingest->{data}')`<br> <br>
+# ffmpeg配置
+作者使用@pandas_udf装饰器定义了用户自定义函数给视频分块，以免不同视频帧率不一致<br>在viva/udfs/ingest.py中配置ffmpeg的输出参数时：
+```python
+def chunk(uri: pd.Series, segment_time_s: pd.Series, outdir: pd.Series) -> pd.DataFrame:
+"""
+    splits an input uri into equally sized videos of segment_time length.
+    no encoding or additional processing happens so this is fast
+    """
+
+    #TODO if we want chunks larger than 60s segment_time arg will change
+    outuris = []
+    for idx, (u, s, o) in enumerate(zip(uri, segment_time_s, outdir)):
+        if not os.path.exists(os.path.abspath(o)):  # 每个视频的分块都放在新的一个文件夹下
+            os.makedirs(os.path.abspath(o))
+
+        output_args = {
+                'map': '0',
+                'c': 'copy',
+                'f': 'segment',
+                'segment_time': f'00:00:{s:02}',
+                'reset_timestamps': '1' #TODO not sure what this does 
+                # 👆默认值为'0'，应该不影响性能，好像是用来强制视频分块从第0秒开始
+            }
+
+        all_outuris = glob(os.path.abspath(os.path.join(o, outname_base + '*mp4')))  # string列表包含1个视频的所有分块文件的绝对路径
+```
+发现作者的方法不支持大于60s的分块；这部分或可并行化。

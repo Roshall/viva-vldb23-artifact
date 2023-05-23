@@ -91,6 +91,7 @@ def chunk(uri: pd.Series, segment_time_s: pd.Series, outdir: pd.Series) -> pd.Da
 
         _ffmpeg_helper(u, outuri, input_args, output_args)
         all_outuris = glob(os.path.abspath(os.path.join(o, outname_base + '*mp4')))
+        # string列表包含1个视频的所有分块文件的绝对路径
         all_ids = [int(i.split('_')[-1].split('.')[0]) for i in all_outuris]
         next_map = {
             'id': all_ids,

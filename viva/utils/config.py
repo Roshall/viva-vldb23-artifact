@@ -28,10 +28,10 @@ def update_value_config(cfg, category, key, value):
         category_data[key] = value
 
 def viva_setup():
-    config = ConfigManager()
+    config = ConfigManager()  # 从/conf.yml中读取键值对的函数
     spark_conf = SparkConf()
     pyspark_config = config.get_value('spark', 'property')
-    for key, value in pyspark_config.items():
+    for key, value in pyspark_config.items():  # 配置pyspark
         spark_conf.set(key, value)
 
     logging.basicConfig(level=logging.WARN, format='%(message)s')
@@ -63,14 +63,14 @@ def viva_setup():
 
 class ConfigManager(object):
     _instance = None
-    _cfg = None
+    _cfg = None  # yml配置文件
 
     # JAH: no idea what any of this class fluff does
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
 
-            ymlpath = 'conf.yml'
+            ymlwpath = 'conf.yml'
             with open(ymlpath, 'r') as ymlfile:
                 cls._cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
