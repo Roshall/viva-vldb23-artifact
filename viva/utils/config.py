@@ -70,7 +70,7 @@ class ConfigManager(object):
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
 
-            ymlwpath = 'conf.yml'
+            ymlpath = 'conf.yml'
             with open(ymlpath, 'r') as ymlfile:
                 cls._cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 

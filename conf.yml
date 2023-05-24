@@ -1,5 +1,5 @@
 storage:
-    input: 'data/'
+    input: '/media/lg/local/Dataset/NBA/'
     canary: 'canary/'
     output: 'output/'
 
