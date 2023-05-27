@@ -8,7 +8,7 @@ from viva.inference.proxyclassification_inference import ProxyClassificationInfe
 from viva.inference.objectdetect_inference import ObjectDetectInference
 from viva.inference.emotiondetect_inference import EmotionDetectInference
 from viva.inference.facerecognition_inference import FaceRecognitionInference
-from viva.inference.animaldetect_inference import AnimalDetectInference
+# from viva.inference.animaldetect_inference import AnimalDetectInference
 from viva.inference.objecttrack_inference import ObjectTrackInference
 from viva.inference.img2vec_inference import Img2VecInference
 from viva.inference.kmeans_inference import KMeansInference
@@ -87,11 +87,11 @@ class ProxyClassificationNode(Node):
         operator = ProxyClassificationInference().model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
-class AnimalDetectNode(Node):
-    def __init__(self, in_columns: List[str], in_literals: List[str] = []):
-        out_column = 'animaldetect'
-        operator = AnimalDetectInference().model_udf
-        super().__init__(in_columns, out_column, operator, in_literals)
+# class AnimalDetectNode(Node):
+#     def __init__(self, in_columns: List[str], in_literals: List[str] = []):
+#         out_column = 'animaldetect'
+#         operator = AnimalDetectInference().model_udf
+#         super().__init__(in_columns, out_column, operator, in_literals)
 
 class ObjectTrackNode(Node):
     def __init__(self, in_columns: List[str], in_literals: List[str] = []):
