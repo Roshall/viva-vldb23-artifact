@@ -18,14 +18,16 @@ class ObjectDetectInference(AbstractInference):
         self.model_udf = self._prepare_model_udf(size)
 
     def _prepare_model_udf(self, size = 'yolov5s'):
-        yolov5 = torch.hub.load('ultralytics/yolov5', size, pretrained=True, verbose=False)
+        yolov5 = torch.hub.load('/home/lg/.cache/torch/hub/ultralytics_yolov5_master', 'custom', size+'.pt',
+                                source='local', verbose=False)
         bc_yolov5_state = self.sc.broadcast(yolov5.state_dict())
         use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
         device = torch.device('cuda' if use_cuda else 'cpu')
 
         def yolo_fn():
             """Gets the broadcasted model."""
-            model = torch.hub.load('ultralytics/yolov5', size, pretrained=True, verbose=False)
+            model = torch.hub.load('/home/lg/.cache/torch/hub/ultralytics_yolov5_master', 'custom', size+'.pt',
+                                   source='local', pretrained=True, verbose=False)
             model.load_state_dict(bc_yolov5_state.value)
             model.eval()
             model.to(device)

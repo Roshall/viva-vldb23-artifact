@@ -51,7 +51,7 @@ cp "${script_dir}"/hints_plans/"${query_name}"/"${hints_plan}" ${hints_plan_path
 
 # Set up input video, TASTI indexes, and similarity image.
 # Assuming all are in data/${query_name}
-mv dataset/"${query_name}"/"${input_video}" data/sample_vid.mp4 # Video
+mv dataset/"${query_name}"/"${input_video}" data/sample_vid.mp4 
 cp dataset/"${query_name}"/"${query_name}"_tasti_index.bin.orig data/tasti_index.bin # TASTI
 cp dataset/"${query_name}"/"${query_name}"_similarity_img.png.orig data/similarity_img.png # Similarity
 

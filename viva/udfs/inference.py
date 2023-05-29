@@ -54,9 +54,9 @@ from tensorflow.keras.applications.imagenet_utils import decode_predictions
 
 from facenet_pytorch import MTCNN
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'CameraTraps'))
+# sys.path.append(os.path.join(os.path.dirname(__file__), 'CameraTraps'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'deep_sort/deep_sort/deep/reid'))
-from detection import run_tf_detector_batch as animal_detect
+# from detection import run_tf_detector_batch as animal_detect
 
 from deepface.commons import functions
 from deepface.extendedmodels import Age
@@ -601,61 +601,61 @@ def facenet_model_udf(model_fn):
     return predict
 
 #TODO: IMPORTANT!!!! This UDF needs to be updated to support raw binary image inputs
-def animal_model_udf(model_fn):
-    """
-    Define the function for model inference using animal detect (MegaDetector)
-    """
-
-    @pandas_udf(InferenceResults)
-    def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
-        model_path = model_fn()
-
-        label_map = {
-            '1': 'animal',
-            '2': 'person',
-            '3': 'vehicle',
-            '4': 'group'
-        }
-
-        for content_series in content_series_iter:
-            # Create batches for this iteration
-            batches = list(batch(content_series, batch_size))
-
-            for i,b in enumerate(batches):
-                results = animal_detect.load_and_run_detector_batch(model_file=model_path, image_file_names=list(b))
-
-                curr_results=[]
-                for r in results:
-                    next_map = {
-                        'xmin'  : [],
-                        'ymin'  : [],
-                        'xmax'  : [],
-                        'ymax'  : [],
-                        'label' : [],
-                        'cls' : [],
-                        'score' : []
-                    }
-                    for d in r['detections']:
-                        xmin = d['bbox'][0]
-                        ymin = d['bbox'][1]
-                        xmax = xmin + d['bbox'][2]
-                        ymax = ymin + d['bbox'][3]
-                        label = label_map.get(d['category'], str(d['category']))
-                        score = d['conf']
-
-                        next_map['xmin'].append(xmin)
-                        next_map['ymin'].append(ymin)
-                        next_map['xmax'].append(xmax)
-                        next_map['ymax'].append(ymax)
-                        next_map['label'].append(label)
-                        next_map['cls'].append(d['category'])
-                        next_map['score'].append(score)
-
-                    curr_results.append(next_map)
-                predictions_pd = pd.DataFrame(curr_results)
-                yield predictions_pd
-
-    return predict
+# def animal_model_udf(model_fn):
+#     """
+#     Define the function for model inference using animal detect (MegaDetector)
+#     """
+#
+#     @pandas_udf(InferenceResults)
+#     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
+#         model_path = model_fn()
+#
+#         label_map = {
+#             '1': 'animal',
+#             '2': 'person',
+#             '3': 'vehicle',
+#             '4': 'group'
+#         }
+#
+#         for content_series in content_series_iter:
+#             # Create batches for this iteration
+#             batches = list(batch(content_series, batch_size))
+#
+#             for i,b in enumerate(batches):
+#                 results = animal_detect.load_and_run_detector_batch(model_file=model_path, image_file_names=list(b))
+#
+#                 curr_results=[]
+#                 for r in results:
+#                     next_map = {
+#                         'xmin'  : [],
+#                         'ymin'  : [],
+#                         'xmax'  : [],
+#                         'ymax'  : [],
+#                         'label' : [],
+#                         'cls' : [],
+#                         'score' : []
+#                     }
+#                     for d in r['detections']:
+#                         xmin = d['bbox'][0]
+#                         ymin = d['bbox'][1]
+#                         xmax = xmin + d['bbox'][2]
+#                         ymax = ymin + d['bbox'][3]
+#                         label = label_map.get(d['category'], str(d['category']))
+#                         score = d['conf']
+#
+#                         next_map['xmin'].append(xmin)
+#                         next_map['ymin'].append(ymin)
+#                         next_map['xmax'].append(xmax)
+#                         next_map['ymax'].append(ymax)
+#                         next_map['label'].append(label)
+#                         next_map['cls'].append(d['category'])
+#                         next_map['score'].append(score)
+#
+#                     curr_results.append(next_map)
+#                 predictions_pd = pd.DataFrame(curr_results)
+#                 yield predictions_pd
+#
+#     return predict
 
 def tracking_model_udf(model_fn):
     """
