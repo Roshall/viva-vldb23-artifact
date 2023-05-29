@@ -50,9 +50,9 @@ cp ${script_dir}/hints_plans/${query_name}/${hints_plan} ${hints_plan_path}
 
 # Set up input video, TASTI indexes, and similarity image.
 # Assuming all are in data/${query_name}
-cp data/${query_name}/${input_video} data/sample_vid.mp4 # Video
-cp data/${query_name}/${query_name}_tasti_index.bin.orig data/tasti_index.bin # TASTI
-cp data/${query_name}/${query_name}_similarity_img.png.orig data/similarity_img.png # Similarity
+mv dataset/${query_name}/${input_video} data/sample_vid.mp4 # Video
+cp dataset/${query_name}/${query_name}_tasti_index.bin.orig data/tasti_index.bin # TASTI
+cp dataset/${query_name}/${query_name}_similarity_img.png.orig data/similarity_img.png # Similarity
 
 # If this is a warmup run, first clear tmp/ and output/. Otherwise, do not
 if [ ${do_warmup} == "1" ]; then
@@ -64,15 +64,16 @@ fi
 
 #===== Run experiment =====#
 # If do_warmup is 1, run once with minimal parameters to warm up the ingest
+. env_vars
 if [ ${do_warmup} == "1" ]; then
-    python3 run_query.py --logging \
+    venv/bin/python run_query.py --logging \
                          --query ${query_name} \
                          --canary ${canary_input} \
                          --ingestwarmup
 fi
 
 logging_suffix="${input_video},${selectivity_fraction},${canary_input},${proxy_thresh},${f1_thresh},${costminmax},${hints_plan}"
-python3 run_query.py --logging ${logging_suffix} \
+venv/bin/python run_query.py --logging ${logging_suffix} \
                      --query ${query_name} \
                      --selectivityfraction ${selectivity_fraction} \
                      --f1thresh ${f1_thresh} \
@@ -80,6 +81,9 @@ python3 run_query.py --logging ${logging_suffix} \
                      --canary ${canary_input}
 
 #===== Cleanup =====#
+# move video back
+mv data/sample_vid.mp4  dataset/${query_name}/${input_video}# Video
+
 # Remove experiment_hints.py
 rm ${hints_plan_path}
 

@@ -162,6 +162,7 @@ def main(args):
         viva_session.update_log('num_trees', num_trees)
         viva_session.update_log('num_plans', num_plans)
         viva_session.update_log('final_frame_count', final_frame_count)
+        viva_session.log_time.update(opt.log_times)
         viva_session.print_logs(query, best_plan, args.logging, args.logname)
         opt.save_plans(query, args.logging)
 

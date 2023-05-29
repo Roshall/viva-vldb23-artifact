@@ -5,8 +5,8 @@ input_video=("lakers-warriors-60min.mp4.orig")
 selectivity_fraction=("0.05")
 proxy_threshold=("0.8")
 f1_threshold=("0.8")
-hints_plan=("all_hints.py")
-#hints_plan=("all_hints.py superset_hints.py no_hints.py proxy_hints.py")
+#hints_plan=("all_hints.py")
+hints_plan=("all_hints.py superset_hints.py no_hints.py proxy_hints.py")
 costminmax=("min")
 
 # do_warmup is run once per video input and not timed
