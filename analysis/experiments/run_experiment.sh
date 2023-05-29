@@ -84,7 +84,7 @@ venv/bin/python run_query.py --logging "${logging_suffix}" \
 
 #===== Cleanup =====#
 # move video back
-mv data/sample_vid.mp4  dataset/"${query_name}"/"${input_video}"# Video
+mv data/sample_vid.mp4  dataset/"${query_name}"/"${input_video}"
 
 # Remove experiment_hints.py
 rm ${hints_plan_path}
