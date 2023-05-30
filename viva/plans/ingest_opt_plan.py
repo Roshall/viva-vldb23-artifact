@@ -55,7 +55,7 @@ cn.add_filter(chunk_select)
 Plan.append(cn)
 
 Plan.append(EncodeNode(['uri'], [width, height, fps, outdir]))
-next_input = [Plan[len(Plan)-1].out_column]
+next_input = [Plan[-1].out_column]
 
 vp = VideoProbeNode(next_input)
 vp.add_filter(probe_select)

@@ -141,7 +141,6 @@ def encode(uri: pd.Series, width: pd.Series, height: pd.Series, fps: pd.Series,
 
 @pandas_udf(RawFrameData)
 def framedecode(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.DataFrame]:
-    all_results = []
     for curr_iter in iterator:
         uri = curr_iter[0]
         total_frames = curr_iter[1]

@@ -119,4 +119,8 @@ def main(args):
     print(f'Done profiling: {query}.')
 
 if __name__ == '__main__':
+    """
+    Given a canary, produce its f1 score and selectivity for each plan
+    and write them to data/
+    """
     main(get_args())
