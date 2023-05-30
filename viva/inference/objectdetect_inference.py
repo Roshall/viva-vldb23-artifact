@@ -27,7 +27,7 @@ class ObjectDetectInference(AbstractInference):
         def yolo_fn():
             """Gets the broadcasted model."""
             model = torch.hub.load('/home/lg/.cache/torch/hub/ultralytics_yolov5_master', 'custom', size+'.pt',
-                                   source='local', pretrained=True, verbose=False)
+                                   source='local', verbose=False)
             model.load_state_dict(bc_yolov5_state.value)
             model.eval()
             model.to(device)
