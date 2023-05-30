@@ -53,7 +53,7 @@ def warmup(plan):
     tensor = tensor.to(device)
     print('warm up done')
 
-def execute_transfer(it = 2, latencies = {}) -> None:
+def execute_transfer(it = 2, latencies = {}):
     plan = TransferPlan.all_plans[0]
     warmup(plan)
 
@@ -96,8 +96,11 @@ def fit_and_save(data):
     return model
 
 if __name__ == '__main__':
-    with open(fname, 'r') as fd:
-        loaded_latencies = json.load(fd)
+    if os.path.exists(fname):
+        with open(fname, 'r') as fd:
+            loaded_latencies = json.load(fd)
+    else:
+        loaded_latencies = {}
 
     latencies = execute_transfer(iterations, loaded_latencies)
     with open(fname, 'w') as fd:

@@ -1,17 +1,16 @@
+import argparse
 import os
+from os import path
 import sys
-import json
-
-from viva.utils.config import viva_setup
-spark = viva_setup()
-
-from timeit import default_timer as now
-from typing import Callable, NamedTuple, Tuple, List, Any, Dict, Type
+from typing import Dict
 
 from pyspark.sql import Window
 import pyspark.sql.dataframe as ppd
 from pyspark.sql.functions import row_number, col
 
+basepath = path.dirname(__file__)
+sys.path.append(path.abspath(path.join(basepath, '../../')))
+from viva.utils.config import viva_setup
 from viva.sparkmodels import IngestVideo
 from viva.nodes.data_nodes import WalkRows
 from viva.plans.tasti_plan import Img2VecPlan
@@ -22,7 +21,10 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 
-#def gen_input_df(frame_limit: int) -> ppd.DataFrame:
+spark = viva_setup()
+
+
+# def gen_input_df(frame_limit: int) -> ppd.DataFrame:
 def gen_input_df(fraction_to_sample: float) -> ppd.DataFrame:
     videos = ['data/']
     data = WalkRows(videos, ['mp4']).custom_op(None)
@@ -33,16 +35,18 @@ def gen_input_df(fraction_to_sample: float) -> ppd.DataFrame:
         df_i = node.apply_filters(df_i)
 
     w = Window.partitionBy().orderBy(col("id"))
-    df_i = df_i.withColumn("rn",row_number().over(w)).filter(col("rn") % int(1/fraction_to_sample) == 0)    .drop(*["rn"])
+    df_i = df_i.withColumn("rn", row_number().over(w)).filter(col("rn") % int(1 / fraction_to_sample) == 0).drop(
+        *["rn"])
 
-    #return df_i.limit(frame_limit)
+    # return df_i.limit(frame_limit)
     return df_i
+
 
 def gen_indexes(df: ppd.DataFrame, vector_size: int, k_value: int) -> Dict:
     # Any plan will do
     plan = Img2VecPlan.all_plans[0]
 
-    for i,node in enumerate(plan):
+    for i, node in enumerate(plan):
         df = node.apply_op(df)
 
         if i >= 10:
@@ -53,7 +57,7 @@ def gen_indexes(df: ppd.DataFrame, vector_size: int, k_value: int) -> Dict:
     df = df.select(*col_to_select)
     df_vec = df.collect()
 
-    vec_np = np.array([np.frombuffer(bytearray(b.img2vec), dtype=np.float32).reshape(vector_size,) for b in df_vec])
+    vec_np = np.array([np.frombuffer(bytearray(b.img2vec), dtype=np.float32).reshape(vector_size, ) for b in df_vec])
 
     kmeans = KMeans(init='k-means++', n_clusters=k_value, n_init=10)
     kmeans.fit(vec_np)
@@ -63,9 +67,9 @@ def gen_indexes(df: ppd.DataFrame, vector_size: int, k_value: int) -> Dict:
     # For each cluster, find the furthest point (FPF) and save its index
     # {Key: cluster_index, Value: FPF_index}
     fpf_map = {}
-    for i,p in enumerate(preds):
+    for i, p in enumerate(preds):
         next_center = centers[p]
-        next_vec = vec_np[i,:]
+        next_vec = vec_np[i, :]
         sim = cosine_similarity(next_center.reshape((1, -1)), next_vec.reshape((1, -1)))[0][0]
 
         if p not in fpf_map:
@@ -75,22 +79,23 @@ def gen_indexes(df: ppd.DataFrame, vector_size: int, k_value: int) -> Dict:
                 fpf_map[p] = i
 
     # For each prediction (center), determine the furthest point from it, and assign that the label (i.e., FPF)
-    rep_map = {} # {Key: model, Value: [(cluster_center, label(s)), ...]}
+    rep_map = {}  # {Key: model, Value: [(cluster_center, label(s)), ...]}
     for n in df.schema.names:
         if n != 'img2vec':
-            for k,v in fpf_map.items():
+            for k, v in fpf_map.items():
                 cluster_center = centers[k]
                 label = df_vec[v][n]
                 if n not in rep_map:
                     rep_map[n] = []
                 rep_map[n].append((cluster_center, label))
 
-    for k,v in rep_map.items():
+    for k, v in rep_map.items():
         print(k)
         for vv in v:
             print('\t', vv[1])
 
     return rep_map
+
 
 def run_tasti(output_name: str, fraction_to_sample: float, vector_size: int, k_value: int) -> None:
     df = gen_input_df(fraction_to_sample)
@@ -100,11 +105,21 @@ def run_tasti(output_name: str, fraction_to_sample: float, vector_size: int, k_v
     pd.set_option('display.max_colwidth', None)
     pandas_df.to_pickle(output_name)
 
+
+def parse_arg():
+    parser = argparse.ArgumentParser(description="Given a video, output tasti index.")
+
+    parser.add_argument('-q', dest='query', required=True, action='store', help='query name')
+    parser.add_argument('-p', dest='prefix', default='../../../dataset/', action='store', help='output prefix name')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    fname = 'long_tasti_index.bin'
+    arg = parse_arg()
+    fname = f'{arg.query}_tasti_index.bin'
     fraction_to_sample = 0.9
-    vector_size = 512 # ResNet-18
+    vector_size = 512  # ResNet-18
     k_value = 50
     default_output_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/', fname)
-    run_tasti(output_name=default_output_name, fraction_to_sample=fraction_to_sample, vector_size=vector_size, k_value=k_value)
-
+    run_tasti(output_name=default_output_name, fraction_to_sample=fraction_to_sample, vector_size=vector_size,
+              k_value=k_value)

@@ -1,0 +1,4 @@
+viva_root=$(dirname "$(dirname "$PWD")")
+pyscript_root=${viva_root}/viva/core
+queries=("deepface" "angrybernie" "amsterdamdock" "dunk")
+python=${viva_root}/venv/bin/python
