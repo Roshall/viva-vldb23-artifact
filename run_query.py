@@ -156,12 +156,15 @@ def main(args):
         f1thresh, opt_target
     )
 
+    result_video = str(uuid1())[0:7]
+
     if do_logging:
         final_frame_count = df_res.select('id').distinct().count()
         best_plan, num_trees, num_plans = logging_data
         viva_session.update_log('num_trees', num_trees)
         viva_session.update_log('num_plans', num_plans)
         viva_session.update_log('final_frame_count', final_frame_count)
+        viva_session.update_log('result_video_filename', result_video)
         viva_session.log_time.update(opt.log_times)
         viva_session.print_logs(query, best_plan, args.logging, args.logname)
         opt.save_plans(query, args.logging)
@@ -171,11 +174,13 @@ def main(args):
         print('Query->no results.')
         return
 
-    output_dir = 'output'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # output_dir = 'output'
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)
+    if not os.path.exists(query):
+        os.makedirs(query)
 
-    outname = f'{output_dir}/out-{str(uuid1())[0:7]}.mp4'
+    outname = f'{query}/out-{result_video}.mp4'
     write_video(data, outname)
     print(f'Done running: {query}. Results to: {outname}')
 
