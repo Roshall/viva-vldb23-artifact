@@ -1,6 +1,6 @@
 #!/bin/bash
 
-viva_root=/opt/viva
+. viva_vars
 script_dir=`pwd`
 hints_plan_path=viva/plans/experiment_hints.py
 

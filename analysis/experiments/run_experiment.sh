@@ -1,7 +1,8 @@
 #!/bin/bash
 
-viva_root=/opt/viva
-script_dir=`pwd`
+. viva_vars
+
+script_dir=$(pwd)
 hints_plan_path=viva/plans/experiment_hints.py
 
 while getopts q:s:c:p:f:v:d:e:x:w: flag
@@ -17,6 +18,7 @@ do
         e) costminmax=${OPTARG};;
         x) hints_plan=${OPTARG};;
         w) do_warmup=${OPTARG};;
+      *) echo "invalid argument ${OPTARG}";;
     esac
 done
 
@@ -33,7 +35,7 @@ echo "Do warmup: ${do_warmup}"
 echo "==============================="
 
 # Change to home directory
-pushd ${viva_root}
+pushd "${viva_root}" || exit
 #===== Setup =====#
 # Save the original conf if it has not been saved before.
 # Tries to prevent incomplete runs from overwriting confs, but this can be disabled
@@ -43,19 +45,20 @@ if [ ! -f "conf.yml.orig" ]; then
 fi
 
 # Generate new conf based on experiment input
-sed "s|<PROXY_THRESH>|${proxy_thresh}|g" ${script_dir}/conf.yml.templ > conf.yml
+sed "s|<PROXY_THRESH>|${proxy_thresh}|g" "${script_dir}"/conf.yml.templ > conf.yml
 
 # Copy hints plan as experiment_hints.py
-cp ${script_dir}/hints_plans/${query_name}/${hints_plan} ${hints_plan_path}
+cp "${script_dir}"/hints_plans/"${query_name}"/"${hints_plan}" ${hints_plan_path}
 
 # Set up input video, TASTI indexes, and similarity image.
 # Assuming all are in data/${query_name}
-mv dataset/${query_name}/${input_video} data/sample_vid.mp4 # Video
-cp dataset/${query_name}/${query_name}_tasti_index.bin.orig data/tasti_index.bin # TASTI
-cp dataset/${query_name}/${query_name}_similarity_img.png.orig data/similarity_img.png # Similarity
+mv dataset/"${query_name}"/data/"${input_video}" data/sample_vid.mp4
+cp dataset/"${query_name}"/"${query_name}"_tasti_index.bin.orig data/tasti_index.bin # TASTI
+cp dataset/"${query_name}"/"${query_name}"_similarity_img.png.orig data/similarity_img.png # Similarity
 
 # If this is a warmup run, first clear tmp/ and output/. Otherwise, do not
-if [ ${do_warmup} == "1" ]; then
+if [ "${do_warmup}" == "1" ]; then
+#  mv -b output/"${query_name}"/ "${query_name}"
     echo "Clearing tmp/ and output/"
     rm tmp/* output/*
 else
@@ -65,31 +68,33 @@ fi
 #===== Run experiment =====#
 # If do_warmup is 1, run once with minimal parameters to warm up the ingest
 . env_vars
-if [ ${do_warmup} == "1" ]; then
-    venv/bin/python run_query.py --logging \
-                         --query ${query_name} \
-                         --canary ${canary_input} \
+if [ "${do_warmup}" == "1" ]; then
+    python run_query.py --logging \
+                         --query "${query_name}" \
+                         --canary "${canary_input}" \
                          --ingestwarmup
 fi
 
 logging_suffix="${input_video},${selectivity_fraction},${canary_input},${proxy_thresh},${f1_thresh},${costminmax},${hints_plan}"
-venv/bin/python run_query.py --logging ${logging_suffix} \
-                     --query ${query_name} \
-                     --selectivityfraction ${selectivity_fraction} \
-                     --f1thresh ${f1_thresh} \
-                     --costminmax ${costminmax} \
-                     --canary ${canary_input}
+python run_query.py --logging "${logging_suffix}" \
+                     --query "${query_name}" \
+                     --selectivityfraction "${selectivity_fraction}" \
+                     --f1thresh "${f1_thresh}" \
+                     --costminmax "${costminmax}" \
+                     --canary "${canary_input}"
 
 #===== Cleanup =====#
 # move video back
-mv data/sample_vid.mp4  dataset/${query_name}/${input_video}# Video
+mv data/sample_vid.mp4  dataset/"${query_name}"/data/"${input_video}"
 
 # Remove experiment_hints.py
 rm ${hints_plan_path}
 
 # Remove temporary Spark directories (excluding /tmp/spark-events)
 find /tmp/spark* -mindepth 1 ! -regex '^/tmp/spark-events\(/.*\)?' -delete
-
+# Remove temporary Spark directories (excluding /tmp/spark-events)
+source helper.sh
+clean_spark
 # Copy the original conf back
 cp conf.yml.orig conf.yml
-popd
+popd || exit

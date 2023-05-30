@@ -1,6 +1,6 @@
 #!/bin/bash
 
-queries=("deepface" "angrybernie" "amsterdamdock" "dunk")
+. viva_vars
 
 for q in ${queries[@]}; do
     bash query_sweep_${q}.sh

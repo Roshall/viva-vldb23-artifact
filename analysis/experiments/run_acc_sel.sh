@@ -1,7 +1,6 @@
 #!/bin/bash
 
-viva_root=/opt/viva
-script_dir=`pwd`
+source viva_vars
 hints_plan_path=viva/plans/experiment_hints.py
 
 while getopts q:s:c:p:f:v:d:e:x:w: flag
@@ -52,7 +51,7 @@ echo "Clearing tmp/ and output/"
 rm tmp/* output/*
 
 #===== Run experiment =====#
-python3 calculate_metrics.py --query ${query_name} \
+python calculate_metrics.py --query ${query_name} \
                              --selectivityfraction ${selectivity_fraction} \
                              --canary canary/${canary_input}
 
@@ -61,7 +60,8 @@ python3 calculate_metrics.py --query ${query_name} \
 rm ${hints_plan_path}
 
 # Remove temporary Spark directories (excluding /tmp/spark-events)
-find /tmp/spark* -mindepth 1 ! -regex '^/tmp/spark-events\(/.*\)?' -delete
+source helper.sh
+clean_spark
 
 # Copy the original conf back
 cp conf.yml.orig conf.yml
