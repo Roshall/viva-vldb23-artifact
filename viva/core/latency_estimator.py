@@ -1,24 +1,24 @@
+import json
 import os
 import sys
-import json
 from os import path
+
+from viva.core.utils import gen_input_df
+
 basepath = path.dirname(__file__)
 sys.path.append(path.abspath(path.join(basepath, '../../')))
 
 from viva.utils.config import viva_setup
 spark = viva_setup()
-from viva.utils.config import viva_setup, ConfigManager
+from viva.utils.config import ConfigManager
 config = ConfigManager()
 
 from timeit import default_timer as now
-from typing import Callable, NamedTuple, Tuple, List, Any, Dict, Type
+from typing import Dict
 
 import pyspark.sql.dataframe as ppd
 
-from viva.sparkmodels import IngestVideo
-from viva.nodes.data_nodes import WalkRows
 from viva.plans.profile_plan import ProfilePlan
-from viva.plans.ingest_opt_plan import Plan as IngestPlan
 
 # Produce batch_scale * batch_size inputs so that we get an accurate estimate
 # of time per batch without initial startup overhead. We then divide the final
@@ -42,14 +42,8 @@ GPU_NODES = [
     'img2vec'
 ]
 
-def gen_input_df(batch_size: int) -> ppd.DataFrame:
-    videos = ['data/']
-    data = WalkRows(videos, ['mp4']).custom_op(None)
-    df_i = spark.createDataFrame(data, IngestVideo)
-
-    for node in IngestPlan:
-        df_i = node.apply_op(df_i)
-        df_i = node.apply_filters(df_i)
+def gen_lat_input_df(batch_size: int) -> ppd.DataFrame:
+    df_i = gen_input_df(spark, config.get_value('storage', 'input'))
 
     return df_i.limit(batch_size * batch_scale)
 
@@ -103,9 +97,9 @@ def profile_ops(output_name: str, batch_size: int, overwrite_ops: bool = False) 
             fd.close()
 
     # warm up run
-    _ = profile_node_latencies(gen_input_df(batch_size), prof_map, True)
+    _ = profile_node_latencies(gen_lat_input_df(batch_size), prof_map, True)
 
-    df = gen_input_df(batch_size)
+    df = gen_lat_input_df(batch_size)
     prof_map = profile_node_latencies(df, prof_map)
 
     fd = open(output_name, 'w')

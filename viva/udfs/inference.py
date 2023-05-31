@@ -3,33 +3,27 @@ Based on: https://docs.databricks.com/_static/notebooks/deep-learning/dist-img-i
 and: https://docs.databricks.com/_static/notebooks/deep-learning/pytorch-images.html
 """
 
-import os
-import io
-import sys
 import json
+import os
+import sys
+
 import numpy as np
+
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 import pandas as pd
 import torch
 torch.warnings.filterwarnings('ignore')
 from PIL import Image
 from itertools import islice
-from typing import Iterator, Tuple
+from typing import Iterator
 
 from viva.sparkmodels import InferenceResults, TrackResults
-from viva.utils.config import viva_setup, ConfigManager
+from viva.utils.config import ConfigManager
 config = ConfigManager()
 
-from viva.utils.profiling import perf_count
 from pyspark.sql.functions import pandas_udf
 from pyspark.sql.types import (
-    StructField,
-    ArrayType,
-    StructType,
-    BinaryType,
-    IntegerType,
-    StringType,
-    FloatType
+    BinaryType
 )
 
 from torchvision.transforms import Compose, Lambda
@@ -42,17 +36,12 @@ from pytorchvideo.transforms import (
     UniformTemporalSubsample,
 )
 
-import cv2
 from sklearn.metrics.pairwise import cosine_similarity
 
 from torch.utils.data import Dataset, DataLoader
-from torchvision import datasets, transforms
-from torchvision.io import read_image, ImageReadMode
-from torchvision.datasets.folder import default_loader
+from torchvision import transforms
 
 from tensorflow.keras.applications.imagenet_utils import decode_predictions
-
-from facenet_pytorch import MTCNN
 
 # sys.path.append(os.path.join(os.path.dirname(__file__), 'CameraTraps'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'deep_sort/deep_sort/deep/reid'))
@@ -64,7 +53,7 @@ from deepface.extendedmodels import Age
 from viva.utils.tf_helpers import split_tf_model
 
 # Constants
-batch_size = 16 # Constant for now, but should likely become more dynamic
+batch_size = config.get_value("prediction", "batch_size")  # Constant for now, but should likely become more dynamic
 
 # Create batches
 def batch(it, size):

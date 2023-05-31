@@ -1,19 +1,14 @@
-import os
-import sys
 import argparse
-import json
+import os
 import pathlib
-import hashlib
+
 from viva.utils.config import viva_setup, ConfigManager
+
 spark = viva_setup()
 config = ConfigManager()
 
-import pandas as pd
 from pprint import pprint
 
-from timeit import default_timer as now
-
-from pyspark.sql.functions import col
 from viva.core.session import VIVA
 from viva.core.optimizer import Optimizer
 from viva.core.utils import (
@@ -69,8 +64,9 @@ def main(args):
     do_cache = True
 
     # load canary and dataset
-    df_c = ingest(build_row(canary))
-    df_i = ingest()
+    videos_path = config.get_value('storage', 'input')
+    df_c = ingest(videos_path, build_row(canary))
+    df_i = ingest(videos_path)
 
     # hash input dataset
     input_dataset_hash = hash_input_dataset(df_i)

@@ -1,15 +1,15 @@
 import os
-from typing import Tuple, List, Iterator
 from glob import glob
+from typing import Tuple, List, Iterator
 
 import cv2
 import ffmpeg
 import pandas as pd
-from pyspark.sql import Row
 from pyspark.sql.functions import pandas_udf, udf
-from pyspark.sql.types import StringType, ArrayType, Row
+from pyspark.sql.types import StringType, ArrayType
 
 from viva.sparkmodels import VideoMetaData, FrameData, RawFrameData, ChunkVideo
+
 
 def _ffmpeg_helper(fname: str, outname: str,
                    input_args: dict, output_args: dict) -> None:

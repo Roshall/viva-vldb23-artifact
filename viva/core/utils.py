@@ -1,13 +1,15 @@
-import os
-import csv
-import json
-import pathlib
 import hashlib
-import pickle
-import numpy as np
-from typing import  List, Type, Dict, Tuple
+import json
 import logging
+import os
+import pathlib
+import pickle
+from typing import List, Type, Dict, Tuple
+
+import numpy as np
+
 from viva.utils.config import viva_setup, ConfigManager
+
 config = ConfigManager()
 
 import pandas as pd
@@ -26,12 +28,25 @@ profiled_ops_path = 'data/op_latency_bmarks.json'
 gpu_profiled_ops_path = 'data/op_latency_bmarks_gpu.json'
 gpu_tx_model_path = 'data/gpu_data_transfer_model.pkl'
 
-def ingest(custom_path = None):
+
+def gen_input_df(spark, videos_path) -> ppd.DataFrame:
+    videos = [videos_path]
+    data = WalkRows(videos, ['mp4']).custom_op(None)
+    df_i = spark.createDataFrame(data, IngestVideo)
+
+    for node in IngestPlan:
+        df_i = node.apply_op(df_i)
+        df_i = node.apply_filters(df_i)
+
+    return df_i
+
+
+def ingest(videos_path, custom_path=None):
     spark = viva_setup()
     if isinstance(custom_path, Row):
         data = [custom_path]
     else:
-        videos = [config.get_value('storage', 'input')]
+        videos = [videos_path]
         data = WalkRows(videos, ['mp4']).custom_op(None)
 
     logging.warn(f'Ingest->{data}')
@@ -42,8 +57,10 @@ def ingest(custom_path = None):
 
     return df_i
 
+
 def build_row(name):
     return Row(str(os.path.abspath(name)), 0)
+
 
 def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[Type[Node]]]):
     spark = viva_setup()
@@ -110,6 +127,7 @@ def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[T
 
     return
 
+
 def profile_node_selectivity(df: ppd.DataFrame, plans: List[List[Type[Node]]],
                              fraction_to_sample: float, do_random: bool = False, sel_map: Dict = {}):
     # Sample
@@ -117,7 +135,8 @@ def profile_node_selectivity(df: ppd.DataFrame, plans: List[List[Type[Node]]],
         df_s = df.sample(withReplacement=False, fraction=fraction_to_sample, seed=None)
     else:
         w = Window.partitionBy().orderBy(col("id"))
-        df_s = df.withColumn("rn",row_number().over(w)).filter(col("rn") % int(1/fraction_to_sample) == 0).drop(*["rn"])
+        df_s = df.withColumn("rn", row_number().over(w)).filter(col("rn") % int(1 / fraction_to_sample) == 0).drop(
+            *["rn"])
 
     # Compute how many frames we will explore
     num_start_frames = df_s.select('id').distinct().count()
@@ -151,7 +170,8 @@ def profile_node_selectivity(df: ppd.DataFrame, plans: List[List[Type[Node]]],
             elif 'deepfaceSuffix' in model:
                 if embed_cached_df['dfprefixembed'] is None:
                     # This plan should be invalid; skip
-                    print('WARNING: attempted to get selectivity for', model, 'before running dfprefixembed. Skipping...')
+                    print('WARNING: attempted to get selectivity for', model,
+                          'before running dfprefixembed. Skipping...')
                     break
                 else:
                     df_ss = embed_cached_df['dfprefixembed']
@@ -181,6 +201,7 @@ def profile_node_selectivity(df: ppd.DataFrame, plans: List[List[Type[Node]]],
 
     return sel_map
 
+
 def make_unique_ids(fids: List) -> List:
     """
     append ids with an identifier for easier search
@@ -194,6 +215,7 @@ def make_unique_ids(fids: List) -> List:
         uid = '_'.join([str(val), str(counts[val])])
         output.append(uid)
     return output
+
 
 def load_sel_db(keys) -> Dict[str, float]:
     key = keys.get('key', None)
@@ -209,6 +231,7 @@ def load_sel_db(keys) -> Dict[str, float]:
             sels[row['op']] = row['selectivity']
 
     return sels
+
 
 def load_f1_db(keys) -> Dict[str, float]:
     key = keys.get('key', None)
@@ -229,6 +252,7 @@ def load_f1_db(keys) -> Dict[str, float]:
 
     return f1
 
+
 def save_to_db(pdf, fname):
     if not os.path.exists(fname):
         pdf_csv = pdf.to_csv(index=False)
@@ -238,6 +262,7 @@ def save_to_db(pdf, fname):
         data = pd.read_csv(fname)
         merged = pd.concat([data, pdf]).drop_duplicates()
         merged.to_csv(fname, mode='w', index=False)
+
 
 def save_selectivities(keys: Dict, sellogs: Dict):
     if keys == None:
@@ -255,6 +280,7 @@ def save_selectivities(keys: Dict, sellogs: Dict):
     pdf = pd.DataFrame(data, columns=cols)
     save_to_db(pdf, selectivity_db_name)
 
+
 def save_f1_scores(keys: Dict, plans: List[Type[Tuple]]):
     if keys == None:
         logging.warn('Optimizer dataset keys not set, not saving plan f1 scores.')
@@ -271,6 +297,7 @@ def save_f1_scores(keys: Dict, plans: List[Type[Tuple]]):
     pdf = pd.DataFrame(data, columns=cols)
     save_to_db(pdf, f1_db_name)
 
+
 def load_op_latency() -> Dict[str, int]:
     lat_profiles = {}
     if os.path.exists(profiled_ops_path):
@@ -283,6 +310,7 @@ def load_op_latency() -> Dict[str, int]:
 
     return lat_profiles
 
+
 def keygenerator(params: Dict) -> Dict:
     skeys = sorted(params.keys())
     key = '_'.join([f'{k}:{params[k]}' for k in skeys])
@@ -290,10 +318,12 @@ def keygenerator(params: Dict) -> Dict:
 
     return {'params': key, 'key': hashlib.sha224(ekey).hexdigest()}
 
+
 def hash_input_dataset(df_i):
     uris = '&'.join(sorted([r.uri for r in df_i.select(df_i.uri).collect()]))
     uris = hashlib.sha224(str.encode(uris)).hexdigest()
     return uris
+
 
 def create_log_dict(args, config, in_uris):
     argkeys = ['selectivityfraction', 'selectivityrandom', 'query']
@@ -307,9 +337,11 @@ def create_log_dict(args, config, in_uris):
 
     return logs
 
+
 def load_gpu_tx_model():
     model = pickle.load(open(gpu_tx_model_path, 'rb'))
     return model
+
 
 def get_gpu_tx_cost(model, frames):
     x_pred = np.array([frames]).reshape(-1, 1)

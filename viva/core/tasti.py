@@ -1,20 +1,19 @@
 import argparse
 import os
-from os import path
 import sys
+from os import path
 from typing import Dict
 
-from pyspark.sql import Window
 import pyspark.sql.dataframe as ppd
+from pyspark.sql import Window
 from pyspark.sql.functions import row_number, col
+
+from viva.core.utils import gen_input_df
 
 basepath = path.dirname(__file__)
 sys.path.append(path.abspath(path.join(basepath, '../../')))
-from viva.utils.config import viva_setup
-from viva.sparkmodels import IngestVideo
-from viva.nodes.data_nodes import WalkRows
+from viva.utils.config import viva_setup, ConfigManager
 from viva.plans.tasti_plan import Img2VecPlan
-from viva.plans.ingest_opt_plan import Plan as IngestPlan
 
 import numpy as np
 import pandas as pd
@@ -22,17 +21,12 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 
 spark = viva_setup()
+config = ConfigManager()
 
 
 # def gen_input_df(frame_limit: int) -> ppd.DataFrame:
-def gen_input_df(fraction_to_sample: float) -> ppd.DataFrame:
-    videos = ['data/']
-    data = WalkRows(videos, ['mp4']).custom_op(None)
-    df_i = spark.createDataFrame(data, IngestVideo)
-
-    for node in IngestPlan:
-        df_i = node.apply_op(df_i)
-        df_i = node.apply_filters(df_i)
+def gen_tasti_input_df(fraction_to_sample: float) -> ppd.DataFrame:
+    df_i = gen_input_df(spark, config.get_value('storage', 'input'))
 
     w = Window.partitionBy().orderBy(col("id"))
     df_i = df_i.withColumn("rn", row_number().over(w)).filter(col("rn") % int(1 / fraction_to_sample) == 0).drop(
@@ -98,7 +92,7 @@ def gen_indexes(df: ppd.DataFrame, vector_size: int, k_value: int) -> Dict:
 
 
 def run_tasti(output_name: str, fraction_to_sample: float, vector_size: int, k_value: int) -> None:
-    df = gen_input_df(fraction_to_sample)
+    df = gen_tasti_input_df(fraction_to_sample)
     generated_indexes = gen_indexes(df, vector_size, k_value)
 
     pandas_df = pd.DataFrame(generated_indexes)

@@ -48,7 +48,7 @@ class VIVA:
             base_filename = '%s_%s' % (query_name, plan)
             if file_suffix != '':
                 base_filename += '_s_%s' % file_suffix
-            base_filename += '.txt'
+            base_filename += '.csv'
             latencyfile = os.path.join(output_dir, 'lat_' + base_filename)
             if logname is not None:
                 latencyfile = os.path.join(output_dir, logname)

@@ -1,23 +1,21 @@
-import os
-import sys
 import cv2
 import pickle
-import torch
+from time import sleep, perf_counter
+from typing import Iterator
+
+import cv2
 import numpy as np
 import pandas as pd
-from typing import Iterator
-from time import sleep, perf_counter
+import torch
+
 from viva.utils.config import ConfigManager
+
 config = ConfigManager()
 
 from viva.sparkmodels import InferenceResults, RawFrameData
-from viva.udfs.inference import batch, batch_size
+from viva.udfs.inference import batch
 
 from pyspark.sql.functions import pandas_udf
-from pyspark.sql.types import (
-    StructField, ArrayType, StructType, BinaryType, IntegerType, StringType,
-    FloatType
-)
 
 h = config.get_value('ingest', 'height')
 w = config.get_value('ingest', 'width')
@@ -303,6 +301,7 @@ def complex_transfer(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.Da
         content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
 
         # Create batches for this iteration
+        batch_size = config.get_value("prediction", "batch_size")
         batches = list(batch(content_series_rev, batch_size))
 
         for i,b in enumerate(batches):
