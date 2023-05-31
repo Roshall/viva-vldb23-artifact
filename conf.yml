@@ -1,5 +1,5 @@
 storage:
-    input: '/media/lg/local/Dataset/NBA/'
+    input: 'data/'
     canary: 'canary/'
     output: 'output/'
 
@@ -36,3 +36,6 @@ logging:
     writetofile: True
     output: 'analysis/logs'
     sparkloglevel: 'ERROR'
+
+prediction:
+  batch_size: 16
