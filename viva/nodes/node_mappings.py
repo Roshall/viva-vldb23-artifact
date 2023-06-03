@@ -1,4 +1,6 @@
 import logging
+import os
+
 from viva.nodes.inference_nodes import (
     ObjectDetectNode, ObjectDetectNodeXLarge, ObjectDetectNodeNano,
     ObjectDetectNodeMedium, ObjectDetectNodeLarge, FaceDetectNode,
@@ -41,7 +43,7 @@ facedet_hierarchy = {
 }
 
 inp_col_list = ['framebytes', 'width', 'height']
-
+tasti_index_pth = os.path.join(config.get_value("storage", "input"), 'tasti_index.bin')
 
 class NodeMap:
     def __init__(self):
@@ -65,10 +67,10 @@ class NodeMap:
             'odx': (ObjectDetectNodeXLarge, (inp_col_list,)),
             'ot': (ObjectTrackNode, (inp_col_list,)),
             'i2v': (Img2VecNode, (inp_col_list,)),
-            'tod': TASTIObjectDetectNode(['img2vec']),
-            'ted': TASTIEmotionDetectNode(['img2vec']),
-            'tfd': TASTIFaceDetectNode(['img2vec']),
-            'tad': TASTIActionDetectNode(['img2vec']),
+            'tod': TASTIObjectDetectNode(['img2vec'], tasti_index_pth),
+            'ted': TASTIEmotionDetectNode(['img2vec'], tasti_index_pth),
+            'tfd': TASTIFaceDetectNode(['img2vec'], tasti_index_pth),
+            'tad': TASTIActionDetectNode(['img2vec'], tasti_index_pth),
             'dfage': (DeepFaceNode, (inp_col_list, [], 'Age')),
             'dfgender': (DeepFaceNode, (inp_col_list, [], 'Gender')),
             'dfrace': (DeepFaceNode, (inp_col_list, [], 'Race')),
