@@ -41,16 +41,7 @@ pushd "${viva_root}" || exit
 #===== Setup =====#
 # Save the original conf if it has not been saved before.
 # Tries to prevent incomplete runs from overwriting confs, but this can be disabled
-if [ ! -f "conf.yml.orig" ]; then
-    echo "Copying conf.yml to conf.yml.orig"
-    mv conf.yml conf.yml.orig
-fi
-
-# Generate new conf based on experiment input
-sed "s|<PROXY_THRESH>|${proxy_thresh}|g" "${script_dir}"/conf.yml.templ |\
-sed "s|input:.*|input: 'dataset/${query_name}/data/'|" |\
-sed "s|output:.*|output: 'output${ex_id}/'|" |\
-sed "s|tmp:.*|tmp: 'tmp${ex_id}/'|" > conf.yml
+new_conf "${proxy_thresh}" "${script_dir}" "${query_name}" "${ex_id}"
 
 # Copy hints plan as experiment_hints.py
 cp "${script_dir}"/hints_plans/"${query_name}"/"${hints_plan}" ${hints_plan_path}

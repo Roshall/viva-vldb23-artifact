@@ -41,7 +41,7 @@ sed "s|<PROXY_THRESH>|${proxy_thresh}|g" ${script_dir}/conf.yml.templ > conf.yml
 cp ${script_dir}/hints_plans/${query_name}/${hints_plan} ${hints_plan_path}
 
 # Set up input video, TASTI indexes, and similarity image.
-# Assuming all are in data/${query_name}
+# Assuming all are in resource/${query_name}
 cp data/${query_name}/${input_video} data/sample_vid.mp4 # Video
 cp data/${query_name}/${query_name}_tasti_index.bin.orig data/tasti_index.bin # TASTI
 cp data/${query_name}/${query_name}_similarity_img.png.orig data/similarity_img.png # Similarity

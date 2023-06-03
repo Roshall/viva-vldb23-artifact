@@ -1,13 +1,14 @@
 #!/bin/bash
 query_name="dunk"
-canary_input="lebron-ground-truth.mp4"
-input_video=("lakers_vs_warriors.mp4")
+canary_input="fake.mp4"
+input_video=("warrior_vs_lakers_1h.mp4")
 selectivity_fraction=("0.05")
 proxy_threshold=("0.8")
 f1_threshold=("0.8")
 #hints_plan=("all_hints.py")
 hints_plan=(all_hints.py superset_hints.py no_hints.py proxy_hints.py)
 costminmax=("min")
+useGPU=${1-0}
 
 # do_warmup is run once per video input and not timed
 for v in "${input_video[@]}"; do
@@ -18,7 +19,7 @@ for v in "${input_video[@]}"; do
                 for x in "${hints_plan[@]}"; do
                     for e in "${costminmax[@]}"; do
                         bash run_experiment.sh -q ${query_name} -s "${s}" -c ${canary_input} \
-                                               -p "${p}" -f "${f}" -v "${v}" \
+                                               -p "${p}" -f "${f}" -v "${v}" -n "${useGPU}"\
                                                -e "${e}" -x "${x}" -w ${do_warmup}
                         do_warmup="0"
                     done # costminmax
