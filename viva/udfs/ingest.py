@@ -139,6 +139,17 @@ def encode(uri: pd.Series, width: pd.Series, height: pd.Series, fps: pd.Series,
 
     return outuris
 
+
+empty_map = {'id': [],
+             'framebytes': [],
+             'height': [],
+             'width': []}
+
+
+def no_intersection(lhs, rhs) -> bool:
+    return lhs[0] > rhs[1] or lhs[1] < rhs[0]
+
+
 @pandas_udf(RawFrameData)
 def framedecode(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.DataFrame]:
     for curr_iter in iterator:
@@ -157,51 +168,30 @@ def framedecode(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.DataFr
             eg = int(tf * ew)
 
             # Figure out whether to decode any frames from this chunk
-            start_frame = -1
-            end_frame = -1
-            if (eg >= sc) and (sg <= ec):
-                if sg >= sc:
-                    start_frame = sg - sc
-                else:
-                    start_frame = 0
-
-                if eg <= ec:
-                    end_frame = eg - sc
-                else:
-                    end_frame = ec - sc
+            if no_intersection((sg, eg), (sc, ec)):
+                curr_map = empty_map  # FIXME(lu): it might be wrong to do so
             else:
-                # Append empty map
-                curr_map = {'id': [None],
-                            'framebytes': [None],
-                            'height': [None],
-                            'width': [None]}
-                all_results.append(curr_map)
-                continue
+                start_frame = max(0, sg - sc)
+                end_frame = min(eg, ec) - sc
+                video = cv2.VideoCapture(u)
 
-            video = cv2.VideoCapture(u)
-            video.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+                curr_frames = []
+                width = video.get(cv2.CAP_PROP_FRAME_WIDTH)
+                height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                video.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+                for _ in range(end_frame - start_frame + 1):
+                    success, frame = video.read()
+                    if not success:
+                        break
+                    curr_frames.append(frame.tobytes())
+                video.release()
 
-            success = True
-            frame_id = start_frame
-            curr_frames = []
-            width = -1
-            height = -1
-            while success and (frame_id <= end_frame):
-                success, frame = video.read()
+                all_frame_id = [i for i in range(start_frame + sc, end_frame + sc + 1)]
+                curr_map = {'id': all_frame_id,
+                            'framebytes': curr_frames,
+                            'height': [height] * len(all_frame_id),
+                            'width': [width] * len(all_frame_id)}
 
-                if width < 0 and height < 0:
-                    height = frame.shape[0]
-                    width = frame.shape[1]
-
-                curr_frames.append(frame.tobytes())
-                frame_id += 1
-            video.release()
-
-            all_frame_id = [i for i in range(start_frame + sc, end_frame + sc + 1)]
-            curr_map = {'id': all_frame_id,
-                        'framebytes': curr_frames,
-                        'height': [height] * len(all_frame_id),
-                        'width': [width] * len(all_frame_id)}
             all_results.append(curr_map)
 
         video_pd = pd.DataFrame(all_results)

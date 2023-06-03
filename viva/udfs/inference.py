@@ -55,12 +55,51 @@ from viva.utils.tf_helpers import split_tf_model
 # Constants
 batch_size = config.get_value("prediction", "batch_size")  # Constant for now, but should likely become more dynamic
 
+
 # Create batches
 def batch(it, size):
     it = iter(it)
     return iter(lambda: tuple(islice(it, size)), ())
 
+
+def pack_content_series(content_series):
+    all_framebytes = content_series[0]
+    all_width = content_series[1]
+    all_height = content_series[2]
+    content_series_rev = tuple([(f, w, h) for f, w, h in zip(all_framebytes, all_width, all_height)])
+    return content_series_rev
+
+
+def content_series2batch(content_series):
+    content_series_rev = pack_content_series(content_series)
+    # Create batches for this iteration
+    batches = list(batch(content_series_rev, batch_size))
+    return batches
+
+
+def raw_content2img_bytes(raw_content):
+    all_bytes, width, height = raw_content
+    return np.array(bytearray(all_bytes)).reshape((height, width, 3))
+
+
+def raw_content2img(raw_content):
+    img_bytes = raw_content2img_bytes(raw_content)
+    return Image.fromarray(img_bytes)
+
+
 # Image dataset class for producing batches of transformed images
+def imagenet_preprocess(image):
+    transform = transforms.Compose([
+        transforms.Resize(224),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+    ])
+
+    return transform(image)
+
+
 class ImageDataset(Dataset):
     def __init__(self, paths, preprocess_type='ImageNet'):
         self.paths = paths
@@ -71,25 +110,11 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, index):
         next_input = self.paths[index]
-        inp_bytes = next_input[0]
-        inp_width = next_input[1]
-        inp_height = next_input[2]
-        img_np = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
-        image = Image.fromarray(img_np)
+        image = raw_content2img(next_input)
         if self.preprocess_type == 'ImageNet':
-            image = self._imagenet_preprocess(image)
+            image = imagenet_preprocess(image)
             return image
 
-    def _imagenet_preprocess(self, image):
-        transform = transforms.Compose([
-            transforms.Resize(224),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-        ])
-
-        return transform(image)
 
 def imagenet_model_udf(model_fn):
     """
@@ -105,10 +130,7 @@ def imagenet_model_udf(model_fn):
         model.to(device)
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = [(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)]
+            content_series_rev = pack_content_series(content_series)
 
             dataset = ImageDataset(content_series_rev,
                                    preprocess_type='ImageNet')
@@ -157,24 +179,15 @@ def qclassification_model_udf(model_fn):
         model, preprocess, weights = model_fn()
         model.eval()
         model.to(device)
+
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
+            batches = content_series2batch(content_series)
 
-            # Create batches for this iteration
-            batches = list(batch(content_series_rev, batch_size))
-
-            for i,b in enumerate(batches):
+            for _, b in enumerate(batches):
                 next_return = []
                 for bb in b:
-                    inp_bytes = bb[0]
-                    inp_width = bb[1]
-                    inp_height = bb[2]
-                    img_np = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
-                    img = Image.fromarray(img_np)
+                    img = raw_content2img(bb)
                     preproc_batch = preprocess(img).unsqueeze(0)
                     prediction = model(preproc_batch).squeeze(0).softmax(0)
                     class_id = int(prediction.argmax().item())
@@ -206,21 +219,12 @@ def yolo_model_udf(model_fn):
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
+            batches = content_series2batch(content_series)
 
-            # Create batches for this iteration
-            batches = list(batch(content_series_rev, batch_size))
-
-            for i,b in enumerate(batches):
+            for _, b in enumerate(batches):
                 next_inp_list = []
                 for bb in b:
-                    inp_bytes = bb[0]
-                    inp_width = bb[1]
-                    inp_height = bb[2]
-                    img = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
+                    img = raw_content2img(bb)
                     next_inp_list.append(img)
 
                 results = model(next_inp_list)
@@ -246,6 +250,7 @@ def yolo_model_udf(model_fn):
 
     return predict
 
+
 def img2vec_model_udf(model_fn):
     """
     Define the function for image to vector using img2vec (ResNet-18)
@@ -257,22 +262,12 @@ def img2vec_model_udf(model_fn):
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
+            batches = content_series2batch(content_series)
 
-            # Create batches for this iteration
-            batches = list(batch(content_series_rev, batch_size))
-
-            for i,b in enumerate(batches):
+            for _, b in enumerate(batches):
                 next_inp_list = []
                 for bb in b:
-                    inp_bytes = bb[0]
-                    inp_width = bb[1]
-                    inp_height = bb[2]
-                    img = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
-                    img = Image.fromarray(img, 'RGB')
+                    img = raw_content2img(bb)
                     next_inp_list.append(img)
 
                 results = model.get_vec(next_inp_list)
@@ -320,9 +315,9 @@ def kmeans_model_udf(model_fn):
                     'ymin'  : [None],
                     'xmax'  : [None],
                     'ymax'  : [None],
-                    'label' : label,
+                    'label' : [label],
                     'cls'   : [None],
-                    'score' : score,
+                    'score' : [score],
                 }
                 curr_results.append(next_map)
 
@@ -346,7 +341,7 @@ def action_model_udf(model_fn):
         # TODO: IMPORTANT TO KNOW!!!
         # Currently assumes labels are local, but these can be fetched from remote
         # storage (or something)
-        json_filename = os.path.join(config.get_value('storage', 'input'), 'kinetics_classnames.json')
+        json_filename = os.path.join(config.get_value('storage', 'resource'), 'kinetics_classnames.json')
         with open(json_filename, "r") as f:
             kinetics_classnames = json.load(f)
 
@@ -378,21 +373,13 @@ def action_model_udf(model_fn):
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
-
-            # Create batches for this iteration
-            batches = list(batch(content_series_rev, batch_size))
+            batches = content_series2batch(content_series)
 
             for i,b in enumerate(batches):
                 # Prepare next batch to be fed in
                 all_tensors = []
                 for bb in b:
-                    inp_bytes = bb[0]
-                    inp_width = bb[1]
-                    inp_height = bb[2]
+                    inp_bytes, inp_width, inp_height = bb
                     img_torch = torch.frombuffer(bytearray(inp_bytes), dtype=torch.uint8).reshape(inp_height, inp_width, 3)
                     img_torch = img_torch.permute(2, 0, 1)
                     all_tensors.append(img_torch)
@@ -431,6 +418,7 @@ def action_model_udf(model_fn):
 
     return predict
 
+
 def emotion_model_udf(model_fn):
     """
     Define the function for model inference using emotion detection (FER)
@@ -452,21 +440,12 @@ def emotion_model_udf(model_fn):
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
-
-            # Create batches for this iteration
-            batches = list(batch(content_series_rev, batch_size))
+            batches = content_series2batch(content_series)
 
             for i,b in enumerate(batches):
                 curr_results = []
                 for bb in b:
-                    inp_bytes = bb[0]
-                    inp_width = bb[1]
-                    inp_height = bb[2]
-                    img = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
+                    img = raw_content2img_bytes(bb)
                     prediction = model.detect_emotions(img)
 
                     # Convert predictions to dictionary that matches InferenceResults
@@ -502,6 +481,7 @@ def emotion_model_udf(model_fn):
 
     return predict
 
+
 def facenet_model_udf(model_fn):
     """
     Define the function for model inference using facenet
@@ -518,27 +498,18 @@ def facenet_model_udf(model_fn):
         # TODO: IMPORTANT TO KNOW!!!
         # Currently assumes labels are local, but these can be fetched from remote
         # storage (or something)
-        labels = np.load(os.path.join(config.get_value('storage', 'input'), 'rcmalli_vggface_labels_v2.npy'))
+        labels = np.load(os.path.join(config.get_value('storage', 'resource'), 'rcmalli_vggface_labels_v2.npy'))
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-            content_series_rev = tuple([(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)])
+            batches = content_series2batch(content_series)
 
-            # Create batches for this iteration
-            batches = list(batch(content_series_rev, batch_size))
-
-            for i,b in enumerate(batches):
+            for _, b in enumerate(batches):
                 curr_results = []
                 next_inp_list = []
                 for bb in b:
-                    inp_bytes = bb[0]
-                    inp_width = bb[1]
-                    inp_height = bb[2]
-                    img = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
-                    next_inp_list.append(img)
+                    img_np = raw_content2img_bytes(bb)
+                    next_inp_list.append(img_np)
                     # img_bbox = mtcnn.detect(img)[0]
                     # img_cropped = mtcnn(img)
                 img_bboxes, _ = mtcnn.detect(next_inp_list)
@@ -724,33 +695,55 @@ def tracking_model_udf(model_fn):
 
     return predict
 
+
 # Deepface Constants
 df_gender_labels = ['Woman', 'Man']
 df_emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
 df_race_labels = ['asian', 'indian', 'black', 'white', 'middle eastern', 'latino hispanic']
+
+
+def preprocessing(content_series):
+    all_framebytes = content_series[0]
+    all_width = content_series[1]
+    all_height = content_series[2]
+    s_zip = [(f, w, h) for f, w, h in zip(all_framebytes, all_width, all_height)]
+    img_np_series = [np.array(bytearray(x[0])).reshape(x[2], x[1], 3) for x in s_zip]
+    img_region_prep_series = [
+        functions.preprocess_face(img=x, target_size=(224, 224), grayscale=False, enforce_detection=False,
+                                  detector_backend='opencv', return_region=True) for x in img_np_series]
+    img_prep_series = [x[0] for x in img_region_prep_series]
+    img_np_series_final = np.squeeze(np.array(img_prep_series), axis=1)
+    return img_np_series_final, img_region_prep_series
+
 
 # Takes a prefix model as input, returns a column (pd.Series) that stores the embedding.
 def deepface_prefix_model_udf(model):
     @pandas_udf(BinaryType())
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.Series]:
         for content_series in content_series_iter:
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-
-            s_zip = [(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)]
-            img_np_series = [ np.array(bytearray(x[0])).reshape(x[2], x[1], 3) for x in s_zip]
-            img_region_prep_series = [ functions.preprocess_face(img = x, target_size = (224, 224), grayscale = False, enforce_detection = False, detector_backend = 'opencv', return_region = True) for x in img_np_series]
-
-            img_prep_series = [x[0] for x in img_region_prep_series]
-            img_np_series_final = np.squeeze(np.array(img_prep_series), axis=1)
-
-            embeds =  model.predict(img_np_series_final, batch_size=batch_size)
-            #flatten the embeddings:
+            img_np_series_final, _ = preprocessing(content_series)
+            embeds = model.predict(img_np_series_final, batch_size=batch_size)
+            # flatten the embeddings:
             embeds_flat = [x.tobytes() for x in embeds]
             yield pd.Series(embeds_flat)
-
     return predict
+
+
+def preds_and_labels(indata, model, model_type):
+    all_preds = model.predict(indata, batch_size=batch_size)
+    if 'Age' in model_type:
+        all_preds = [int(Age.findApparentAge(x)) for x in all_preds]
+        preds_labels = [str(x) for x in all_preds]
+    elif 'Gender' in model_type:
+        all_preds = [np.argmax(x) for x in all_preds]
+        preds_labels = [df_gender_labels[x] for x in all_preds]
+    elif 'Race' in model_type:
+        all_preds = [np.argmax(x) for x in all_preds]
+        preds_labels = [df_race_labels[x] for x in all_preds]
+    else:  # impossible to happen
+        preds_labels = []
+    return all_preds, preds_labels
+
 
 # Takes as input full model, layer_id to split the model into pre,suffix
 def deepface_suffix_model_udf(model, model_type, layer_id):
@@ -765,17 +758,7 @@ def deepface_suffix_model_udf(model, model_type, layer_id):
             all_embeds = [np.frombuffer(bytearray(x), dtype=np.float32).reshape(pre_embed_dim) for x in content_series]
             all_embeds = np.array(all_embeds)
 
-            all_preds = model_suffix.predict(all_embeds, batch_size=batch_size)
-
-            if 'Age' in model_type:
-                all_preds = [int(Age.findApparentAge(x)) for x in all_preds]
-                preds_labels = [str(x) for x in all_preds]
-            elif 'Gender' in model_type:
-                all_preds = [ np.argmax(x) for x in all_preds]
-                preds_labels = [df_gender_labels[x] for x in all_preds]
-            elif 'Race' in model_type:
-                all_preds = [ np.argmax(x) for x in all_preds]
-                preds_labels = [df_race_labels[x] for x in all_preds]
+            all_preds, preds_labels = preds_and_labels(all_embeds, model_suffix, model_type)
 
             preds_df = [{
                 'xmin': [None], 
@@ -787,40 +770,19 @@ def deepface_suffix_model_udf(model, model_type, layer_id):
                 'score': [1.0]
             } for i in range(len(all_preds))]
 
-
             yield pd.DataFrame(preds_df)
-
     return predict
+
 
 def deepface_model_udf(model, model_type):
     @pandas_udf(InferenceResults)
     def predict(si_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
         for content_series in si_iter:
-            #Preprocess:
-            all_framebytes = content_series[0]
-            all_width = content_series[1]
-            all_height = content_series[2]
-
-            s_zip = [(f,w,h) for f,w,h in zip(all_framebytes, all_width, all_height)]
-            img_np_series = [ np.array(bytearray(x[0])).reshape(x[2], x[1], 3) for x in s_zip]
-            img_region_prep_series = [ functions.preprocess_face(img = x, target_size = (224, 224), grayscale = False, enforce_detection = False, detector_backend = 'opencv', return_region = True) for x in img_np_series]
-
-            img_prep_series = [x[0] for x in img_region_prep_series]
-            img_np_series_final = np.squeeze(np.array(img_prep_series), axis=1)
-
+            # Preprocess:
+            img_np_series_final, img_region_prep_series = preprocessing(content_series)
             # Running the model
+            preds, preds_labels = preds_and_labels(img_np_series_final, model, model_type)
             preds = model.predict(img_np_series_final, batch_size=batch_size)
-
-            # Postprocessing the predictions:
-            if 'Age' in model_type:
-                preds = [int(Age.findApparentAge(x)) for x in preds]
-                preds_labels = [str(x) for x in preds]
-            elif 'Gender' in model_type:
-                preds = [ np.argmax(x) for x in preds]
-                preds_labels = [df_gender_labels[x] for x in preds]
-            elif 'Race' in model_type:
-                preds = [ np.argmax(x) for x in preds ]
-                preds_labels = [df_race_labels[x] for x in preds]
 
             preds_df = [{
                 'xmin': [img_region_prep_series[i][1][0]],
