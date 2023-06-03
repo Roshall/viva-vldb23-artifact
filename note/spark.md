@@ -9,6 +9,10 @@ def viva_setup():
     for key, value in pyspark_config.items():  # 配置pyspark 
         spark_conf.set(key, value)
 ```
+
+## important
+jdk的版本不能太高（如17），否则java报错，目前java11运行正常
+
 ## 意外发现：
 ```python
     if use_gpu:
@@ -68,7 +72,26 @@ def chunk(uri: pd.Series, segment_time_s: pd.Series, outdir: pd.Series) -> pd.Da
 
         all_outuris = glob(os.path.abspath(os.path.join(o, outname_base + '*mp4')))  # string列表包含1个视频的所有分块文件的绝对路径
 ```
-发现作者的方法不支持大于60s的分块；这部分或可并行化。
+发现作者的方法不支持大于60s的分块。<br> <br>
+## 2. 视频编码
+发现这里存在问题，虽然解码可能用了硬解码，但是完全没有使用gpu做硬编码，全程软编码。或可**提高性能**?。
+```python
+@pandas_udf(returnType=StringType())
+def encode(uri: pd.Series, width: pd.Series, height: pd.Series, fps: pd.Series,
+           outdir: pd.Series) -> pd.Series:
+    """
+    """
 
-## important
-jdk的版本不能太高（如17），否则java报错，目前java11运行正常
+    gpu = False
+    encoder = 'h264_nvenc' if gpu else 'libx264'
+
+        if not os.path.exists(outuri):  # 不覆盖文件
+            input_args = {
+                'hwaccel': 'auto',
+                'hwaccel_output_format': 'auto',
+            }
+            #TODO i think this is an nvidia gpu arg
+            # 'vf': f'scale_npp={res}',
+```
+这里作者觉得解码过程的参数配置似乎还有优化空间。<br> <br>
+## 3. 视频探查元数据
