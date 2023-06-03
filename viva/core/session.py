@@ -179,7 +179,7 @@ class VIVA:
                         # Cache result so we don't need to re-read
                         self._acc_cache[model_for_proxy] = df_temp.cache()
 
-                    df = df_temp.join(df, df_temp.id ==  df.id, "leftsemi")
+                    df = df_temp.join(df, df_temp.id == df.id, "leftsemi")
 
                 if canary_name is None:
                     # Remove duplicates to (a) not process double, and (b) not

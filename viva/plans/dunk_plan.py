@@ -2,16 +2,14 @@ import os
 from copy import deepcopy
 
 from viva.utils.config import ConfigManager
+
 config = ConfigManager()
 proxy_confidence_thresh = config.get_value('execution', 'proxy_confidence_thresh')
 
-from viva.hints.superset_hint import SupersetHint
-from viva.hints.equals_hint import EqualsHint
-from viva.hints.proxy_hint import ProxyHint
 from viva.core.planner import Planner
 
 from viva.nodes.filters import explode_preds
-from viva.plans.plan_filters import object_filter, faces_lebron_expand, similarity_filter
+from viva.plans.plan_filters import object_filter, faces_lebron_expand
 
 DunkHints = {
     'equals': [],
@@ -52,5 +50,5 @@ DunkTree = {
 
 DunkPlan = Planner(DunkTree, DunkHintFilters, DunkHints)
 DunkCanaryTree = deepcopy(DunkTree)
-DunkCanaryTree['val'] = 'skip' # skip generating multiple trees
+DunkCanaryTree['val'] = 'skip'  # skip generating multiple trees
 DunkCanaryPlan = Planner(DunkCanaryTree)

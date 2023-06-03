@@ -1,18 +1,16 @@
-import sys
-import logging
 import itertools
+import logging
+import sys
 from copy import deepcopy
 from typing import Dict, List, Type
-from timeit import default_timer as now
 
-from viva.hints.equals_hint import EqualsHint
-from viva.nodes.node import Node
-from viva.nodes.filters import proxy_quality_filter
-from viva.plans.tests.test_utils import correctness
 from viva.core.planner_utils import (
     _print_trees, str_traversal, leaf2tree, collect,
     uniqueify, deuniqueify
 )
+from viva.nodes.node import Node
+from viva.plans.tests.test_utils import correctness
+
 
 class Planner:
     def __init__(self, tree: Dict, hint_filters: Dict = {}, hints: Dict = {}):

@@ -44,8 +44,7 @@ def viva_setup():
         # TODO(JAH): this changes config for GPU to a single executor. the
         # proper way we should implement is to set the right spark configs to
         # do this.
-        # spark_conf.set('spark.master', 'local[1]')
-        pass
+        spark_conf.set('spark.master', 'local[1]')
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -63,6 +62,9 @@ def viva_setup():
     return spark
 
 class ConfigManager(object):
+    """
+    Singleton pattern for configure management
+    """
     _instance = None
     _cfg = None  # yml配置文件
 
