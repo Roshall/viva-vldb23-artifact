@@ -112,27 +112,27 @@ class Img2VecNode(Node):
         super().__init__(in_columns, out_column, operator, in_literals)
 
 class TASTIObjectDetectNode(Node):
-    def __init__(self, in_columns: List[str], in_literals: List[str] = []):
+    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
         out_column = 'objectdetect_tasti'
-        operator = KMeansInference('objectdetect').model_udf
+        operator = KMeansInference('objectdetect', index_path).model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
 class TASTIEmotionDetectNode(Node):
-    def __init__(self, in_columns: List[str], in_literals: List[str] = []):
+    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
         out_column = 'emotiondetect_tasti'
-        operator = KMeansInference('emotiondetect').model_udf
+        operator = KMeansInference('emotiondetect', index_path).model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
 class TASTIFaceDetectNode(Node):
-    def __init__(self, in_columns: List[str], in_literals: List[str] = []):
+    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
         out_column = 'facedetect_tasti'
-        operator = KMeansInference('facedetect').model_udf
+        operator = KMeansInference('facedetect', index_path).model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
 class TASTIActionDetectNode(Node):
-    def __init__(self, in_columns: List[str], in_literals: List[str] = []):
+    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
         out_column = 'actiondetect_tasti'
-        operator = KMeansInference('actiondetect').model_udf
+        operator = KMeansInference('actiondetect', index_path).model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
 class DeepFaceNode(Node):

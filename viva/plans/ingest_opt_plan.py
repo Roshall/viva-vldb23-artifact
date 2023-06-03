@@ -41,7 +41,7 @@ def probe_select(df):
 
 def frame_select(df):
     df = df.select(col('uri'), col('framedata.*'))
-    df = df.selectExpr('%s as %s' % ('uri', 'uri'), \
+    df = df.selectExpr('%s as %s' % ('uri', 'uri'),
                        'inline(arrays_zip(id,width,height,framebytes))')
 
     # Drop the rows where no frames were decoded from (i.e., id == null)
@@ -50,7 +50,8 @@ def frame_select(df):
 
 Plan = []
 # Need to chunk before encoding since keyframes will get messed up after encoding at a different FPS
-cn = ChunkNode(['uri'], [chunk_size, 'tmp'])
+tmp_path = config.get_value('storage', 'tmp')
+cn = ChunkNode(['uri'], [chunk_size, tmp_path])
 cn.add_filter(chunk_select)
 Plan.append(cn)
 

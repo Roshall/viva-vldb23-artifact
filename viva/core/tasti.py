@@ -8,10 +8,10 @@ import pyspark.sql.dataframe as ppd
 from pyspark.sql import Window
 from pyspark.sql.functions import row_number, col
 
-from viva.core.utils import gen_input_df
-
 basepath = path.dirname(__file__)
 sys.path.append(path.abspath(path.join(basepath, '../../')))
+from viva.core.utils import gen_input_df
+
 from viva.utils.config import viva_setup, ConfigManager
 from viva.plans.tasti_plan import Img2VecPlan
 
@@ -110,10 +110,13 @@ def parse_arg():
 
 if __name__ == '__main__':
     arg = parse_arg()
-    fname = f'{arg.query}_tasti_index.bin'
+    fname = 'tasti_index.bin'
     fraction_to_sample = 0.9
     vector_size = 512  # ResNet-18
     k_value = 50
-    default_output_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/', fname)
-    run_tasti(output_name=default_output_name, fraction_to_sample=fraction_to_sample, vector_size=vector_size,
+    if arg.prefix:
+        output_name = os.path.join(arg.prefix, fname)
+    else:
+        output_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../resource/', fname)
+    run_tasti(output_name=output_name, fraction_to_sample=fraction_to_sample, vector_size=vector_size,
               k_value=k_value)

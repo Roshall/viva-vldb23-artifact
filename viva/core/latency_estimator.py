@@ -113,5 +113,5 @@ if __name__ == '__main__':
     else:
         fname = 'op_latency_bmarks.json'
 
-    default_output_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/', fname)
+    default_output_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../resource/', fname)
     profile_ops(output_name=default_output_name, batch_size=batch_size, overwrite_ops=overwrite_ops)

@@ -11,14 +11,13 @@ class KMeansInference:
     Class for KMeans inference
     """
 
-    def __init__(self, model: str):
-        self.model_udf = self._prepare_model_udf(model)
+    def __init__(self, model: str, index_path: str):
+        self.model_udf = self._prepare_model_udf(model, index_path)
 
-    def _prepare_model_udf(self, model: str):
+    def _prepare_model_udf(self, model: str, index_path: str):
         def kmeans_fn():
             # Load serialized indexes
-            serialized_indexes_path = 'data/tasti_index.bin'
-            index_pd = pd.read_pickle(serialized_indexes_path)
+            index_pd = pd.read_pickle(index_path)
 
             # Extract model's column if it exists, otherwise fail
             p_col = None

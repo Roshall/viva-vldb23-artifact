@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import pickle
 from time import sleep, perf_counter
@@ -34,7 +36,8 @@ def image_similarity(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.Se
     # Currently assumes this image is local, but it could be fetched from
     # remote storage, or loaded as is done with all frames (i.e., as a bytearray
     # read from a DataFrame)
-    target_img = cv2.imread('./data/similarity_img.png')
+    sim_img_pth = os.path.join(config.get_value('storage', 'input'), 'similarity_img.png')
+    target_img = cv2.imread(sim_img_pth)
 
     # Resize to fixed dimensions
     target_img = cv2.resize(target_img, resize_dims)
@@ -134,7 +137,8 @@ def svm_classification(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.
     # Currently assumes this image is local, but it could be fetched from
     # remote storage, or loaded as is done with all frames (i.e., as a bytearray
     # read from a DataFrame)
-    model = pickle.load(open('./data/svm_day_night.sav', 'rb'))
+    model_path = os.path.join(config.get_value('storage', 'resource'), 'svm_day_night.sav')
+    model = pickle.load(open(model_path, 'rb'))
 
     for content_series in content_series_iter:
         # Reverse content series

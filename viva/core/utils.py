@@ -22,11 +22,12 @@ from viva.nodes.data_nodes import WalkRows
 from viva.sparkmodels import IngestVideo
 from viva.plans.ingest_opt_plan import Plan as IngestPlan
 
-selectivity_db_name = 'data/sel.db.csv'
-f1_db_name = 'data/f1.db.csv'
-profiled_ops_path = 'data/op_latency_bmarks.json'
-gpu_profiled_ops_path = 'data/op_latency_bmarks_gpu.json'
-gpu_tx_model_path = 'data/gpu_data_transfer_model.pkl'
+resource_pth = config.get_value('storage', 'resource')
+selectivity_db_name = os.path.join(resource_pth, 'sel.db.csv')
+f1_db_name = os.path.join(resource_pth, 'f1.db.csv')
+profiled_ops_path = os.path.join(resource_pth, 'op_latency_bmarks.json')
+gpu_profiled_ops_path = os.path.join(resource_pth, 'op_latency_bmarks_gpu.json')
+gpu_tx_model_path = os.path.join(resource_pth, 'gpu_data_transfer_model.pkl')
 
 
 def gen_input_df(spark, videos_path) -> ppd.DataFrame:
@@ -41,7 +42,7 @@ def gen_input_df(spark, videos_path) -> ppd.DataFrame:
     return df_i
 
 
-def ingest(videos_path, custom_path=None):
+def ingest(videos_path=None, custom_path=None):
     spark = viva_setup()
     if isinstance(custom_path, Row):
         data = [custom_path]

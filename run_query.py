@@ -1,23 +1,25 @@
+import argparse
 import logging
 import os
 import sys
-import argparse
+
 from viva.utils.config import viva_setup, ConfigManager
+
 config = ConfigManager()
+# viva must be set here for pyspark utility
 viva_setup()
 
 import torch
 from uuid import uuid1
 from timeit import default_timer as now
 
-from pyspark.sql.functions import col
 from viva.utils.video import write_video
 from viva.core.session import VIVA
 from viva.core.optimizer import Optimizer
 from viva.core.utils import (
     ingest, keygenerator, hash_input_dataset, create_log_dict
 )
-device = 'gpu' if config.get_value('execution', 'gpu') else 'cpu'
+
 
 def run_plan(viva_session, df, plan, sel_fraction, sel_random, keys, costminmax, f1thresh, opt_target):
     # create optimizer and find optimal plan
@@ -52,7 +54,7 @@ def run_plan(viva_session, df, plan, sel_fraction, sel_random, keys, costminmax,
 
     if device == 'gpu':
         logging.warn('Query->GPU warmup.')
-        df2 = ingest()
+        df2 = ingest(config.get_value('storage', 'input'))
         _ = viva_session.run(df2, best_execution_plan, plan.hints)
         viva_session.reset_cache()
 
@@ -63,6 +65,7 @@ def run_plan(viva_session, df, plan, sel_fraction, sel_random, keys, costminmax,
     df_s.show(truncate=False)
 
     return df, opt, (best_plan_str, num_trees, num_plans)
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -101,10 +104,12 @@ def get_args():
                         choices=['angrybernie', 'dunk', 'amsterdamdock', 'deepface'],
                         dest='query',
                         help='Query to run (Default: angrybernie)')
-    parser.add_argument('--canary', type=str, required=True, dest='canary', help='Canary input video to find database key.')
+    parser.add_argument('--canary', type=str, required=True, dest='canary',
+                        help='Canary input video to find database key.')
     parser.add_argument('--logname', type=str, required=False, dest='logname')
 
     return parser.parse_args()
+
 
 def main(args):
     do_logging = args.logging is not None
@@ -119,9 +124,9 @@ def main(args):
     opt_target = args.opttarget
 
     start_ingest_v = now()
-    df_i = ingest()
+    df_i = ingest(config.get_value('storage', 'input'))
     if do_logging:
-        df_i.count() # any action op will do
+        df_i.count()  # any action op will do
     end_ingest_v = now()
 
     if do_ingestwarmup:
@@ -183,6 +188,7 @@ def main(args):
     outname = f'{query}/out-{result_video}.mp4'
     write_video(data, outname)
     print(f'Done running: {query}. Results to: {outname}')
+
 
 if __name__ == '__main__':
     main(get_args())

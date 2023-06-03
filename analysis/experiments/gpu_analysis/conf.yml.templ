@@ -2,7 +2,8 @@ storage:
     input: 'data/'
     canary: 'canary/'
     output: 'output/'
-    bucket: 'jah-remote-ingest'
+    tmp: 'tmp/'
+    resource: 'data/'
 
 execution:
     gpu: True
@@ -12,8 +13,8 @@ execution:
 spark:
     property: {
       'spark.logConf': 'true',
-      'spark.driver.memory': '80g',
-      'spark.sql.shuffle.partitions': 1,
+      'spark.driver.memory': '32g',
+      'spark.sql.shuffle.partitions': 2,
       'spark.sql.execution.arrow.pyspark.enabled': 'true',
       'spark.sql.execution.arrow.pyspark.fallback.enabled': 'true',
       'spark.sql.execution.arrow.maxRecordsPerBatch': 100,

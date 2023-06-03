@@ -65,7 +65,7 @@ def main(args):
 
     # load canary and dataset
     videos_path = config.get_value('storage', 'input')
-    df_c = ingest(videos_path, build_row(canary))
+    df_c = ingest(custom_path=build_row(canary))
     df_i = ingest(videos_path)
 
     # hash input dataset
@@ -117,6 +117,6 @@ def main(args):
 if __name__ == '__main__':
     """
     Given a canary, produce its f1 score and selectivity for each plan
-    and write them to data/
+    and write them to resource/
     """
     main(get_args())
