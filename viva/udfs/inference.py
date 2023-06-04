@@ -782,7 +782,6 @@ def deepface_model_udf(model, model_type):
             img_np_series_final, img_region_prep_series = preprocessing(content_series)
             # Running the model
             preds, preds_labels = preds_and_labels(img_np_series_final, model, model_type)
-            preds = model.predict(img_np_series_final, batch_size=batch_size)
 
             preds_df = [{
                 'xmin': [img_region_prep_series[i][1][0]],

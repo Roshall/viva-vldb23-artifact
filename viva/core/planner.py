@@ -149,7 +149,7 @@ class Planner:
             self._update_ot_in_cols(node_list_clean)
 
             plan_name = ''.join([n.out_column for n in node_list_clean])
-            if (plan_name not in all_plan_str):
+            if plan_name not in all_plan_str:
                 self._all_plans.append(node_list_clean)
                 all_plan_str.add(plan_name)
 

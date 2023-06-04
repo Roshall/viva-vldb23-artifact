@@ -3,11 +3,11 @@ import os
 import sys
 from os import path
 
-from viva.core.utils import gen_input_df
 
 basepath = path.dirname(__file__)
 sys.path.append(path.abspath(path.join(basepath, '../../')))
 
+from viva.core.utils import gen_input_df
 from viva.utils.config import viva_setup
 spark = viva_setup()
 from viva.utils.config import ConfigManager
@@ -23,7 +23,7 @@ from viva.plans.profile_plan import ProfilePlan
 # Produce batch_scale * batch_size inputs so that we get an accurate estimate
 # of time per batch without initial startup overhead. We then divide the final
 # end to end time by this value.
-batch_scale = 8
+batch_scale = 1
 batch_size = 16
 overwrite_ops = False
 
@@ -39,7 +39,15 @@ GPU_NODES = [
     'objectdetect_xlarge',
     'objecttrack',
     'proxyclassification',
-    'img2vec'
+    'img2vec',
+    'emotiondetect',
+    'deepfaceAge',
+    'deepfaceGender',
+    'deepfaceRace',
+    'dfprefixembed',
+    'deepfaceSuffixAge',
+    'deepfaceSuffixGender',
+    'deepfaceSuffixRace',
 ]
 
 def gen_lat_input_df(batch_size: int) -> ppd.DataFrame:
