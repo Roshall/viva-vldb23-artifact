@@ -315,9 +315,9 @@ def kmeans_model_udf(model_fn):
                     'ymin'  : [None],
                     'xmax'  : [None],
                     'ymax'  : [None],
-                    'label' : [label],
+                    'label' : label,
                     'cls'   : [None],
-                    'score' : [score],
+                    'score' : score,
                 }
                 curr_results.append(next_map)
 
