@@ -92,8 +92,6 @@ $python run_query.py --logging "${logging_suffix}" \
 rm ${hints_plan_path}
 
 # Remove temporary Spark directories (excluding /tmp/spark-events)
-find /tmp/spark* -mindepth 1 ! -regex '^/tmp/spark-events\(/.*\)?' -delete
-# Remove temporary Spark directories (excluding /tmp/spark-events)
 clean_spark
 # Copy the original conf back
 cp conf.yml.orig conf.yml
