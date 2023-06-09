@@ -77,11 +77,11 @@ def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[T
     # Run the node if it has not previously been run
     # Parquet filename format is: <modelname>_<canary>.parquet
     for p in plans:
+        df_ss = None
         for node in p:
             model = node.out_column
             next_filename = '%s_%s.parquet' % (model, canary_name)
             next_path = os.path.join(canary_cache, next_filename)
-
             # Don't profile a node more than once; load if needed
             if os.path.exists(next_path):
                 if model != 'img2vec' and model != 'dfprefixembed':
@@ -149,6 +149,7 @@ def profile_node_selectivity(df: ppd.DataFrame, plans: List[List[Type[Node]]],
     # Run the node and the filters, estimating along the way
     sel_map = sel_map
     for p in plans:
+        df_ss = None
         for node in p:
             model = node.out_column
             if str(node) in sel_map:

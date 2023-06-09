@@ -31,7 +31,10 @@ def probe(uri: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
     use ffmpeg probe to extract metadata from video
     """
     def _probe(uri: str) -> Tuple:
-        probe = ffmpeg.probe(uri)
+        try:
+            probe = ffmpeg.probe(uri)
+        except ffmpeg.Error as e:
+            print(f"ffmpeg probe error: {e.stderr.decode('utf8')}")
         video_stream = next(
             (
                 stream
