@@ -23,7 +23,7 @@ def canary_frame_ids(plan, session, df, logs, canary_name):
 
 def calculate_f1_scores(opt, hints, df_c, log_times, canary_name):
     # calculate selectivity on input dataset using all plans with hints and get optimal plan
-    log_times['selectivities'] = opt.sel_profiles
+    log_times['real_selectivity'] = opt.sel_profiles
     # update the input to the optimizer but don't reset.
     # Need to estimate plans using calculated selectivities
     opt.set_df(df_c)
@@ -79,7 +79,7 @@ def main(args):
     viva = VIVA(caching=do_cache)
     cp = None
     p = None
-    f1_threshold = 0.9
+    f1_threshold = 0.2
     if query == 'angrybernie':
         from viva.plans.angry_bernie_plan import AngryBernieCanaryPlan as cp
         from viva.plans.angry_bernie_plan import AngryBerniePlan as p
@@ -104,11 +104,18 @@ def main(args):
     # calculate accuracy on canary using canary plan
     fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)
 
+    all_log = []
     opt = Optimizer(
         p.all_plans, df_i, fids, viva, sel_fraction, sel_random,
-        f1_threshold=f1_threshold, keys=keys, prune_plans=prune_plans
+        f1_threshold=f1_threshold, keys=keys, prune_plans=prune_plans, all_log=all_log
     )
     calculate_f1_scores(opt, p.hints, df_c, log_times, canary_name)
+    prefix = f'{query}_pick_holes_f1:0.2'
+    for log in all_log:
+        viva.log_time = log
+        viva.print_logs(query, "", "", prefix+'.csv')
+    opt.save_plans(query, prefix)
+
 
     pprint(log_times)
 

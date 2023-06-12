@@ -1,8 +1,8 @@
 storage:
-    input: 'data/'
-    canary: 'canary/'
-    output: 'output/'
-    tmp: 'tmp/'
+    input: '<INPUT_VIDEO>'
+    canary: 'analysis/canary/'
+    output: '<OUTPUT_VIDEO>'
+    tmp: '<TMP>'
     resource: 'resource/'
 
 execution:
@@ -13,7 +13,7 @@ execution:
 spark:
     property: {
       'spark.logConf': 'true',
-      'spark.driver.memory': '32g',
+      'spark.driver.memory': '62g',
       'spark.sql.shuffle.partitions': 2,
       'spark.sql.execution.arrow.pyspark.enabled': 'true',
       'spark.sql.execution.arrow.pyspark.fallback.enabled': 'true',
@@ -25,6 +25,8 @@ spark:
       'spark.sql.files.maxPartitionBytes': '512m',
       'spark.locality.wait': '0s',
       'spark.driver.maxResultSize': '2g',
+      "spark.memory.offHeap.enabled": 'true',
+      'spark.memory.offHeap.size': '16g',
 }
 
 ingest:
@@ -37,7 +39,7 @@ ingest:
 
 logging:
     writetofile: True
-    output: 'analysis/logs'
+    output: 'analysis/logs/pick_holes'
     sparkloglevel: 'ERROR'
 
 prediction:
