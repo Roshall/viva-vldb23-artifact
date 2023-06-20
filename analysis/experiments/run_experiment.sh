@@ -76,14 +76,14 @@ if [ "${do_warmup}" == "1" ]; then
                          --ingestwarmup
 fi
 
-logging_suffix="${input_video},${selectivity_fraction},${canary_input},${proxy_thresh},${f1_thresh},${costminmax},${hints_plan}"
+logging_suffix="${input_video},${selectivity_fraction},${canary_input},${proxy_thresh},${f1_thresh},${costminmax},${hints_plan%.*}"
 $python run_query.py --logging "${logging_suffix}" \
                      --query "${query_name}" \
                      --selectivityfraction "${selectivity_fraction}" \
                      --f1thresh "${f1_thresh}" \
                      --costminmax "${costminmax}" \
                      --canary "${canary_input}" \
-                     --logname "${query_name}-${hints_plan%.*}.log"
+                     --logname "${logging_suffix}"
 
 #===== Cleanup =====#
 # move video back

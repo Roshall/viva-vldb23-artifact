@@ -330,7 +330,8 @@ class Optimizer:
             # early exit on if we don't care about final cost numbers for other plans
             # NOTE: needs to be off if searching for cost effective plans because
             # needs to compute the cost to get the price
-            early_exit = True if self.opt_target == 'performance' else False
+            # early_exit = True if self.opt_target == 'performance' else False
+            early_exit = False
             self._find_optimal_plan(early_exit)
 
         best_plan = {}

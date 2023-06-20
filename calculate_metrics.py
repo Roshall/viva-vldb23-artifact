@@ -21,6 +21,17 @@ def canary_frame_ids(plan, session, df, logs, canary_name):
     df_o = session.run(df, plan_c, {}, canary_name)
     return [r.id for r in df_o.select(df_o.id).collect()]
 
+
+def listofdict2dictoflist(data: list[dict]):
+    if not data:
+        return None
+    result = {'plan': [], 'total': []}
+    for inner_dict in data:
+        for key in result:
+            result[key].append(inner_dict[key])
+    return result
+
+
 def calculate_f1_scores(opt, hints, df_c, log_times, canary_name):
     # calculate selectivity on input dataset using all plans with hints and get optimal plan
     log_times['real_selectivity'] = opt.sel_profiles
