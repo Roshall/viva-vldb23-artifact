@@ -44,7 +44,8 @@ cp ${script_dir}/hints_plans/${query_name}/${hints_plan} ${hints_plan_path}
 #===== Run experiment =====#
 $python calculate_metrics.py --query ${query_name} \
                              --selectivityfraction ${selectivity_fraction} \
-                             --canary canary/${canary_input}
+                             --canary ${canary_input} \
+                             -p
 
 #===== Cleanup =====#
 # Remove experiment_hints.py

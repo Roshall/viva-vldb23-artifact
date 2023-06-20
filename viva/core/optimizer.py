@@ -47,7 +47,8 @@ class Optimizer:
         self.config = ConfigManager()
         self.plans = plans
         self.df_i = df_i
-        self.frames_to_process = self.df_i.count()
+        # self.frames_to_process = self.df_i.count()
+        self.frames_to_process = None
         self.reference_frames = reference_frames
         self.viva = session
         self.sel_fraction = sel_fraction
@@ -58,7 +59,8 @@ class Optimizer:
         # to access accuracy and selectivity database
         self.keys = keys
         self.lat_profiles = load_op_latency()
-        self._sel_profiles = load_sel_db(keys.get('selectivity', None))
+        # self._sel_profiles = load_sel_db(keys.get('selectivity', None))
+        self._sel_profile = None
         self._f1_scores = load_f1_db(keys.get('f1', None))
         self._log_times = {}
         self._df_cache = {}
@@ -69,6 +71,7 @@ class Optimizer:
         self._tx_cache = {}
         self.cost_plans = {}
         self.price_plans = {}
+        self.skip_candidate = 0
         self._acc_cache = None if not prune_plans else {}
 
     @property
@@ -102,12 +105,15 @@ class Optimizer:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        output = os.path.join(output_dir, f'plan_costs_s_{file_suffix}.json')
+        output = os.path.join(output_dir, f'plan_costs_{file_suffix}.json')
         with open(output, 'w') as fd:
             data = deepcopy(self.cost_plans)
             for c in data:
                 data[c]['plan'] = str(data[c]['plan'])
             json.dump(data, fd, indent=4, sort_keys=True)
+
+    def reset_cache(self):
+        self._acc_cache = {}
 
     def set_df_cache(self, df_cache: Dict):
         self._df_cache = df_cache
@@ -124,20 +130,24 @@ class Optimizer:
     def _estimate_plan_metrics(self, plan: List[Type[Node]]) -> float:
         plan_str_list = [str(p) for p in plan]
         strplan = ','.join(plan_str_list)
-        if strplan in self._f1_scores:
-            f1 = self._f1_scores[strplan]['f1']
-            precision = self._f1_scores[strplan]['precision']
-            recall = self._f1_scores[strplan]['recall']
-            # logging.warn(f'Loaded {strplan} f1={f1}, precision={precision}, recall={recall} from f1.db')
-            return f1, precision, recall
+        assert strplan in self._f1_scores
+        # if strplan in self._f1_scores:
+        f1 = self._f1_scores[strplan]['f1']
+        precision = self._f1_scores[strplan]['precision']
+        recall = self._f1_scores[strplan]['recall']
+        # if f1 <= 0.5:
+        #     return 0.0, 0.0, 0.0
+        # logging.warn(f'Loaded {strplan} f1={f1}, precision={precision}, recall={recall} from f1.db')
+        # return f1, precision, recall
 
-        ref = make_unique_ids(self.reference_frames)
-        def intersect(test: List) -> List:
-            out = ['TP' if val in ref else 'FP' for val in test]
-            out.extend(['FN' for r in ref if r not in test])
-            return out
+        # ref = make_unique_ids(self.reference_frames)
+        # def intersect(test: List) -> List:
+        #     out = ['TP' if val in ref else 'FP' for val in test]
+        #     out.extend(['FN' for r in ref if r not in test])
+        #     return out
 
         # Prune plans if possible (skipping its accuracy computation)
+        assert self._acc_cache is not None
         if self._acc_cache is not None:
             for k,v in self._acc_cache.items():
                 comp_str_list = k.split(',')
@@ -182,18 +192,19 @@ class Optimizer:
                             candidate_to_skip = self._acc_cache[k]
                 if candidate_to_skip is not None:
                     #logging.warn(f'{plan} was skipped!!!')
+                    self.skip_candidate += 1
                     return self._acc_cache[k]
 
-        df_o = self.viva.run(self.df_i, plan, self._hints, self._canary_name)
-        fids = make_unique_ids([r.id for r in df_o.select(df_o.id).collect()])
-        res = intersect(fids)
-        tp = res.count('TP')
-        fp = res.count('FP')
-        fn = res.count('FN')
-
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1 = 2 * (precision*recall)/(precision+recall) if (precision+recall) > 0 else 0
+        # df_o = self.viva.run(self.df_i, plan, self._hints, self._canary_name)
+        # fids = make_unique_ids([r.id for r in df_o.select(df_o.id).collect()])
+        # res = intersect(fids)
+        # tp = res.count('TP')
+        # fp = res.count('FP')
+        # fn = res.count('FN')
+        #
+        # precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        # recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        # f1 = 2 * (precision*recall)/(precision+recall) if (precision+recall) > 0 else 0
 
         if self._acc_cache is not None:
             self._acc_cache[strplan] = (f1, precision, recall)
@@ -266,89 +277,90 @@ class Optimizer:
         start_p_o = now()
         filtered_plans = []
         if self.reference_frames or self._f1_scores:
-            logging.warn('Optimizer->estimating f1 scores.')
+            # logging.warn('Optimizer->estimating f1 scores.')
             to_save = []
-            for i,pp in enumerate(self.plans):
+            for i,pp in enumerate(self.plans, 1):
                 plan_f1, plan_precision, plan_recall = self._estimate_plan_metrics(pp)
-                strplan = ','.join([str(p) for p in pp])
-                to_save.append((strplan, plan_f1, plan_precision, plan_recall))
+                # strplan = ','.join([str(p) for p in pp])
+                # to_save.append((strplan, plan_f1, plan_precision, plan_recall))
                 if plan_f1 >= self.f1_threshold:
                     filtered_plans.append((pp, plan_f1, plan_precision, plan_recall))
-                if i % 10 == 0:
-                    logging.warn('Optimizer->checkpointing f1 at %d of %d' % (i+1, len(self.plans)))
-                    save_f1_scores(self.keys['f1'], to_save)
-                    to_save = [] # reset checkpoint
-            save_f1_scores(self.keys['f1'], to_save)
+                # if i % 20 == 0:
+                    # logging.warn('Optimizer->checkpointing f1 at %d of %d' % (i, len(self.plans)))
+                    # save_f1_scores(self.keys['f1'], to_save)
+                    # to_save = [] # reset checkpoint
+            # save_f1_scores(self.keys['f1'], to_save)
         else:
             filtered_plans = [(pp, 1.0, 1.0, 1.0) for pp in self.plans]
 
-        logging.warn('Optimizer->estimating plan costs.')
-        lowest_running_cost = MAX_COST if self._costminmax == 'min' else 0
-
-        # assuming we're always only using first GPU
-        if self._use_gpu:
-            device_name = torch.cuda.get_device_name(0)
-            if 'T4' in device_name:
-                gpu_name = 'T4'
-            elif 'V100' in device_name:
-                gpu_name = 'V100'
-            else:
-                logging.warn(f'No cost set for {device_name}, using T4 cost')
-                gpu_name = 'T4'
-        # build both keys for easier searching and showing both plans
-        # Initialize based on costminmax
-        for pp, f1, precision, recall in filtered_plans:
-            costs = self._estimate_plan_cost(pp, lowest_running_cost, early_exit)
-            for platform in costs:
-                curr_cost = costs[platform]
-                if curr_cost not in self.cost_plans:
-                    cp = {}
-                    cp['cost'] = curr_cost
-                    cp['plan'] = pp
-                    cp['f1'] = f1
-                    cp['precision'] = precision
-                    cp['recall'] = recall
-                    cp['platform'] = platform
-                    cp['device_name'] = gpu_name if platform == 'gpu' else 'cpu'
-                    if self._use_gpu and platform == 'gpu':
-                        cp['price'] = PRICES[platform][gpu_name] * curr_cost
-                    else:
-                        cp['price'] = PRICES[platform] * curr_cost
-                    self.price_plans[cp['price']] = cp
-                    self.cost_plans[curr_cost] = cp
-                # used to clip early_exit
-                if curr_cost < lowest_running_cost:
-                    lowest_running_cost = curr_cost
-                # logging.warn(f'{pp}: cost={round(curr_cost,rnd)} romeros, platform={platform}, f1={f1}, precision={precision}, recall={recall}')
-
-        end_p_o = now()
-        self._log_times['optimizer'] = end_p_o - start_p_o
+        # logging.warn('Optimizer->estimating plan costs.')
+        # lowest_running_cost = MAX_COST if self._costminmax == 'min' else 0
+        #
+        # # assuming we're always only using first GPU
+        # if self._use_gpu:
+        #     device_name = torch.cuda.get_device_name(0)
+        #     if 'T4' in device_name:
+        #         gpu_name = 'T4'
+        #     elif 'V100' in device_name:
+        #         gpu_name = 'V100'
+        #     else:
+        #         logging.warn(f'No cost set for {device_name}, using T4 cost')
+        #         gpu_name = 'T4'
+        # # build both keys for easier searching and showing both plans
+        # # Initialize based on costminmax
+        # for pp, f1, precision, recall in filtered_plans:
+        #     costs = self._estimate_plan_cost(pp, lowest_running_cost, early_exit)
+        #     for platform in costs:
+        #         curr_cost = costs[platform]
+        #         if curr_cost not in self.cost_plans:
+        #             cp = {}
+        #             cp['cost'] = curr_cost
+        #             cp['plan'] = pp
+        #             cp['f1'] = f1
+        #             cp['precision'] = precision
+        #             cp['recall'] = recall
+        #             cp['platform'] = platform
+        #             cp['device_name'] = gpu_name if platform == 'gpu' else 'cpu'
+        #             if self._use_gpu and platform == 'gpu':
+        #                 cp['price'] = PRICES[platform][gpu_name] * curr_cost
+        #             else:
+        #                 cp['price'] = PRICES[platform] * curr_cost
+        #             self.price_plans[cp['price']] = cp
+        #             self.cost_plans[curr_cost] = cp
+        #         # used to clip early_exit
+        #         if curr_cost < lowest_running_cost:
+        #             lowest_running_cost = curr_cost
+        #         # logging.warn(f'{pp}: cost={round(curr_cost,rnd)} romeros, platform={platform}, f1={f1}, precision={precision}, recall={recall}')
+        #
+        # end_p_o = now()
+        # self._log_times['optimizer'] = end_p_o - start_p_o
 
     def get_optimal_plan(self) -> Tuple[List[Type[Node]], Dict]:
         if not self.cost_plans and not self.price_plans:
             # early exit on if we don't care about final cost numbers for other plans
             # NOTE: needs to be off if searching for cost effective plans because
             # needs to compute the cost to get the price
-            early_exit = True if self.opt_target == 'performance' else False
+            # early_exit = True if self.opt_target == 'performance' else False
+            early_exit = False
             self._find_optimal_plan(early_exit)
 
         best_plan = {}
-        if self.opt_target == 'performance':
-            fastest_plan = self.cost_plans[min(self.cost_plans)]
-            slowest_plan = self.cost_plans[max(self.cost_plans)]
-            if self._costminmax == 'min':
-                best_plan = fastest_plan
-            else:
-                best_plan = slowest_plan
-        elif self.opt_target == 'cost':
-            cheapest_plan = self.price_plans[min(self.price_plans)]
-            costliest_plan = self.price_plans[max(self.price_plans)]
-            if self._costminmax == 'min':
-                best_plan = cheapest_plan
-            else:
-                best_plan = costliest_plan
-
-        logging.warn(f'Optimizer->plans considered: {len(self.cost_plans)}.')
-        logging.warn(f'Optimizer->{self.opt_target} plan: {best_plan}')
+        # if self.opt_target == 'performance':
+        #     fastest_plan = self.cost_plans[min(self.cost_plans)]
+        #     slowest_plan = self.cost_plans[max(self.cost_plans)]
+        #     if self._costminmax == 'min':
+        #         best_plan = fastest_plan
+        #     else:
+        #         best_plan = slowest_plan
+        # elif self.opt_target == 'cost':
+        #     cheapest_plan = self.price_plans[min(self.price_plans)]
+        #     costliest_plan = self.price_plans[max(self.price_plans)]
+        #     if self._costminmax == 'min':
+        #         best_plan = cheapest_plan
+        #     else:
+        #         best_plan = costliest_plan
+        #
+        # logging.warn(f'Optimizer->plans considered: {len(self.cost_plans)}.')
+        # logging.warn(f'Optimizer->{self.opt_target} plan: {best_plan}')
 
         return best_plan
