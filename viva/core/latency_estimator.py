@@ -23,7 +23,7 @@ from viva.plans.profile_plan import ProfilePlan
 # Produce batch_scale * batch_size inputs so that we get an accurate estimate
 # of time per batch without initial startup overhead. We then divide the final
 # end to end time by this value.
-batch_scale = 1
+batch_scale = 1024
 batch_size = 16
 overwrite_ops = False
 
