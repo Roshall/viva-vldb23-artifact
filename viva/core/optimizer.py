@@ -215,7 +215,7 @@ class Optimizer:
 
     def _estimate_plan_cost(self, plan: List[Type[Node]], curr_best, early_exit = True) -> int:
         # Determine how many frames need to be processed
-        batch_size = 16
+        batch_size = self.config.get_value("prediction", "batch_size")
 
         costs = {}
         platforms = ['cpu', 'gpu'] if self._use_gpu else ['cpu']
