@@ -102,16 +102,12 @@ def main(args):
     canary_name = pathlib.Path(canary).stem
 
 
-    fids = []
-    while True:
-        df_c = sample_as_canary(df_i)
-        # Generate canary results
-        gen_canary_results(df_c, canary_name, p.all_plans, False)
+    df_c = sample_as_canary(df_i)
+    # Generate canary results
+    gen_canary_results(df_c, canary_name, p.all_plans, False)
 
-        # calculate accuracy on canary using canary plan
-        fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)
-        if fids:
-            break
+    # calculate accuracy on canary using canary plan
+    fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)
 
     opt = Optimizer(
         p.all_plans, df_i, fids, viva, sel_fraction, sel_random,
