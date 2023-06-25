@@ -4,10 +4,12 @@
 selectivity_thr=0.1
 proxy_thr=0.8
 hints_plan="all_hints.py"
-canary_prefix="../dataset"
+
+. viva_vars
 for i in a b f d; do
-  bash run_acc_sel.sh -q "${queries[$i]}" -s "${selectivity_thr}" -c "${canary_prefix}/${q}/canary/${canaries[$i]}" \
-  -x "${hintsz_plan}"
+  q="${queries["$i"]}"
+  bash run_acc_sel.sh -q "${q}" -s "${selectivity_thr}" -c "${viva_root}/dataset/${q}/canary/${canaries[$i]}" \
+  -x "${hints_plan}" -p "${proxy_thr}"
 done
 
 echo "Done."
