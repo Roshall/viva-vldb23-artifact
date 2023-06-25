@@ -88,7 +88,8 @@ def two_people(df):
 def faces_and(df):
     cl = 'label'
     # Bernie could also be detected as La_Mona_Jiménez
-    faces = ['Angelo_Scola', 'Jake_Tapper']
+    # faces = ['Angelo_Scola', 'Jake_Tapper']
+    faces = ['Bernie', 'Jake_Tapper']
     #faces = ['La_Mona_Jiménez', 'Jake_Tapper']
     # faces = ['Marco_Rubio', 'Jake_Tapper']
     fl = f'{cl}_list'

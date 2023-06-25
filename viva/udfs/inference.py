@@ -40,6 +40,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+from torch import nn
 
 from tensorflow.keras.applications.imagenet_utils import decode_predictions
 
@@ -100,6 +101,9 @@ def imagenet_preprocess(image):
     return transform(image)
 
 
+use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
+device = torch.device('cuda' if use_cuda else 'cpu')
+
 class ImageDataset(Dataset):
     def __init__(self, paths, preprocess_type='ImageNet'):
         self.paths = paths
@@ -120,8 +124,6 @@ def imagenet_model_udf(model_fn):
     """
     # Wraps an ImageNet model into a Pandas UDF that makes predictions.
     """
-    use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
-    device = torch.device('cuda' if use_cuda else 'cpu')
 
     @pandas_udf(InferenceResults)
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
@@ -171,8 +173,6 @@ def qclassification_model_udf(model_fn):
     """
     # Wraps an ImageNet model into a Pandas UDF that makes predictions.
     """
-    use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
-    device = torch.device('cuda' if use_cuda else 'cpu')
 
     @pandas_udf(InferenceResults)
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
@@ -330,8 +330,6 @@ def action_model_udf(model_fn):
     """
     Define the function for model inference using an action detector (3D-ResNet).
     """
-    use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
-    device = torch.device('cuda' if use_cuda else 'cpu')
 
     @pandas_udf(InferenceResults)
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
@@ -482,13 +480,16 @@ def emotion_model_udf(model_fn):
     return predict
 
 
+vgg_labels = np.load(os.path.join(config.get_value('storage', 'resource'), 'rcmalli_vggface_labels_v2.npy'))
+bernie_emb = torch.load(os.path.join(config.get_value('storage', 'resource'), 'bernie_emb.pt')).to(device, non_blocking=True)
+cosine_sim = nn.CosineSimilarity(dim=1)
+sim_trd = 0.6
+
+
 def facenet_model_udf(model_fn):
     """
     Define the function for model inference using facenet
     """
-    use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
-    device = torch.device('cuda' if use_cuda else 'cpu')
-
     @pandas_udf(InferenceResults)
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
         # Define the function for model inference using face recognition (MTCNN + IncRes)
@@ -498,7 +499,6 @@ def facenet_model_udf(model_fn):
         # TODO: IMPORTANT TO KNOW!!!
         # Currently assumes labels are local, but these can be fetched from remote
         # storage (or something)
-        labels = np.load(os.path.join(config.get_value('storage', 'resource'), 'rcmalli_vggface_labels_v2.npy'))
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
@@ -515,7 +515,6 @@ def facenet_model_udf(model_fn):
                 img_bboxes, _ = mtcnn.detect(next_inp_list)
                 img_crops = mtcnn(next_inp_list)
                 for idx, img_cropped in enumerate(img_crops):
-
                     next_map = {
                         'xmin'  : [],
                         'ymin'  : [],
@@ -528,6 +527,13 @@ def facenet_model_udf(model_fn):
 
                     # If there are no faces, we skip
                     if img_cropped is not None:
+                        # first check bernie
+                        model.classify = False
+                        img_embeddings = model(img_cropped.to(device, non_blocking=True))
+                        distance = cosine_sim(bernie_emb, img_embeddings)
+                        bernie_index = (distance > sim_trd).nonzero()
+                        model.classify = True
+
                         prediction = model(img_cropped.to(device, non_blocking=True))
                         # To convert to probability
                         probabilities_raw = torch.nn.functional.softmax(prediction, dim=1)
@@ -539,7 +545,7 @@ def facenet_model_udf(model_fn):
                             bbox = img_bboxes[idx][i]
                             xmin, ymin, xmax, ymax = bbox
                             ind = max_vals.indices[i].item()
-                            label = labels[ind].item()
+                            label = vgg_labels[ind].item()
                             # Get the probability from the softmax as the score
                             score = probabilities[i].item()
 
@@ -550,6 +556,9 @@ def facenet_model_udf(model_fn):
                             next_map['label'].append(label)
                             next_map['cls'].append(ind)
                             next_map['score'].append(score)
+                        # refine bernie
+                        for i in bernie_index:
+                            next_map['label'][i] = 'Bernie'
                     else:
                         for k in next_map.keys():
                             next_map[k].append(None)
