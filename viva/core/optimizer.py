@@ -43,7 +43,6 @@ class Optimizer:
                  costminmax: str = 'min',
                  opt_target: str = 'performance',
                  prune_plans: bool = False,
-                 all_log=None
                 ):
         self.config = ConfigManager()
         self.plans = plans
@@ -71,7 +70,6 @@ class Optimizer:
         self.cost_plans = {}
         self.price_plans = {}
         self._acc_cache = None if not prune_plans else {}
-        self.all_log = all_log if not None else []
 
     @property
     def sel_profiles(self):
@@ -186,12 +184,7 @@ class Optimizer:
                     #logging.warn(f'{plan} was skipped!!!')
                     return self._acc_cache[k]
 
-        old_log = self.viva.log_time
-        self.viva.do_logging = True
-        self.viva.log_time = {}
         df_o = self.viva.run(self.df_i, plan, self._hints, self._canary_name)
-        self.all_log.append(self.viva.log_time)
-        self.viva.log_time = old_log
         fids = make_unique_ids([r.id for r in df_o.select(df_o.id).collect()])
         res = intersect(fids)
         tp = res.count('TP')
