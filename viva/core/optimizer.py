@@ -281,6 +281,7 @@ class Optimizer:
             save_f1_scores(self.keys['f1'], to_save)
         else:
             filtered_plans = [(pp, 1.0, 1.0, 1.0) for pp in self.plans]
+        self._log_times["f1_est_cost"] = now() - start_p_o
 
         logging.warn('Optimizer->estimating plan costs.')
         lowest_running_cost = MAX_COST if self._costminmax == 'min' else 0
