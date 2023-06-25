@@ -16,6 +16,10 @@ from viva.core.utils import (
     gen_canary_results
 )
 
+def sample_as_canary(df_i):
+    fraction = 0.1
+    return df_i.sample(withReplacement=False, fraction=fraction, seed=None)
+
 def canary_frame_ids(plan, session, df, logs, canary_name):
     plan_c = plan.all_plans[0]
     df_o = session.run(df, plan_c, {}, canary_name)
@@ -65,7 +69,6 @@ def main(args):
 
     # load canary and dataset
     videos_path = config.get_value('storage', 'input')
-    df_c = ingest(custom_path=build_row(canary))
     df_i = ingest(videos_path)
 
     # hash input dataset
@@ -79,7 +82,7 @@ def main(args):
     viva = VIVA(caching=do_cache)
     cp = None
     p = None
-    f1_threshold = 0.9
+    f1_threshold = 0.8
     if query == 'angrybernie':
         from viva.plans.angry_bernie_plan import AngryBernieCanaryPlan as cp
         from viva.plans.angry_bernie_plan import AngryBerniePlan as p
@@ -98,11 +101,17 @@ def main(args):
 
     canary_name = pathlib.Path(canary).stem
 
-    # Generate canary results
-    gen_canary_results(df_c, canary_name, p.all_plans)
 
-    # calculate accuracy on canary using canary plan
-    fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)
+    fids = []
+    while True:
+        df_c = sample_as_canary(df_i)
+        # Generate canary results
+        gen_canary_results(df_c, canary_name, p.all_plans, False)
+
+        # calculate accuracy on canary using canary plan
+        fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)
+        if fids:
+            break
 
     opt = Optimizer(
         p.all_plans, df_i, fids, viva, sel_fraction, sel_random,

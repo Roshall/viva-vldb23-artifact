@@ -63,7 +63,7 @@ def build_row(name):
     return Row(str(os.path.abspath(name)), 0)
 
 
-def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[Type[Node]]]):
+def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[Type[Node]]], reuse=True):
     spark = viva_setup()
 
     canary_path = config.get_value('storage', 'canary')
@@ -83,7 +83,7 @@ def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[T
             next_filename = '%s_%s.parquet' % (model, canary_name)
             next_path = os.path.join(canary_cache, next_filename)
             # Don't profile a node more than once; load if needed
-            if os.path.exists(next_path):
+            if os.path.exists(next_path) and reuse:
                 if model != 'img2vec' and model != 'dfprefixembed':
                     continue
                 elif model == 'img2vec':
@@ -117,7 +117,7 @@ def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[T
             df_ss = node.apply_op(df_ss)
 
             # Write out to parquet before applying filter
-            df_ss.write.parquet(next_path)
+            df_ss.write.parquet(next_path, mode="overwrite")
 
             df_ss = node.apply_filters(df_ss)
 
