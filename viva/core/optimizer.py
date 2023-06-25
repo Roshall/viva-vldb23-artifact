@@ -71,7 +71,7 @@ class Optimizer:
         self.cost_plans = {}
         self.price_plans = {}
         self._acc_cache = None if not prune_plans else {}
-        self.all_log = all_log if not None else [{}]
+        self.all_log = all_log if not None else []
 
     @property
     def sel_profiles(self):
@@ -105,7 +105,7 @@ class Optimizer:
             os.makedirs(output_dir)
 
         output = os.path.join(output_dir, f'plan_costs_{file_suffix}.json')
-        with open(output, 'a') as fd:
+        with open(output, 'w') as fd:
             data = deepcopy(self.cost_plans)
             for c in data:
                 data[c]['plan'] = str(data[c]['plan'])
@@ -281,7 +281,7 @@ class Optimizer:
                 to_save.append((strplan, plan_f1, plan_precision, plan_recall))
                 if plan_f1 >= self.f1_threshold:
                     filtered_plans.append((pp, plan_f1, plan_precision, plan_recall))
-                if i % 4 == 0:
+                if i % 10 == 0:
                     logging.warn('Optimizer->checkpointing f1 at %d of %d' % (i+1, len(self.plans)))
                     save_f1_scores(self.keys['f1'], to_save)
                     to_save = [] # reset checkpoint

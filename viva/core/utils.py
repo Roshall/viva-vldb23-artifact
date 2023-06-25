@@ -132,13 +132,12 @@ def gen_canary_results(df_c: ppd.DataFrame, canary_name: str, plans: List[List[T
 def profile_node_selectivity(df: ppd.DataFrame, plans: List[List[Type[Node]]],
                              fraction_to_sample: float, do_random: bool = False, sel_map: Dict = {}):
     # Sample
-    # if do_random:
-    #     df_s = df.sample(withReplacement=False, fraction=fraction_to_sample, seed=None)
-    # else:
-    #     w = Window.partitionBy().orderBy(col("id"))
-    #     df_s = df.withColumn("rn", row_number().over(w)).filter(col("rn") % int(1 / fraction_to_sample) == 0).drop(
-    #         *["rn"])
-    df_s = df
+    if do_random:
+        df_s = df.sample(withReplacement=False, fraction=fraction_to_sample, seed=None)
+    else:
+        w = Window.partitionBy().orderBy(col("id"))
+        df_s = df.withColumn("rn", row_number().over(w)).filter(col("rn") % int(1 / fraction_to_sample) == 0).drop(
+            *["rn"])
 
     # Compute how many frames we will explore
     num_start_frames = df_s.select('id').distinct().count()
