@@ -30,7 +30,7 @@ iterations = 5
 t_sleep = 0
 h = config.get_value('ingest', 'height')
 w = config.get_value('ingest', 'width')
-fname = 'data/gpu_data_transfer.json'
+fname = 'resource/gpu_data_transfer.json'
 
 
 def warmup(plan):

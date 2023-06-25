@@ -274,7 +274,7 @@ class Optimizer:
                 to_save.append((strplan, plan_f1, plan_precision, plan_recall))
                 if plan_f1 >= self.f1_threshold:
                     filtered_plans.append((pp, plan_f1, plan_precision, plan_recall))
-                if i % 10 == 0:
+                if i % 4 == 0:
                     logging.warn('Optimizer->checkpointing f1 at %d of %d' % (i+1, len(self.plans)))
                     save_f1_scores(self.keys['f1'], to_save)
                     to_save = [] # reset checkpoint
@@ -330,7 +330,8 @@ class Optimizer:
             # early exit on if we don't care about final cost numbers for other plans
             # NOTE: needs to be off if searching for cost effective plans because
             # needs to compute the cost to get the price
-            early_exit = True if self.opt_target == 'performance' else False
+            # early_exit = True if self.opt_target == 'performance' else False
+            early_exit = False
             self._find_optimal_plan(early_exit)
 
         best_plan = {}

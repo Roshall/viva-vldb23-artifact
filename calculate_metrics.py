@@ -61,7 +61,7 @@ def main(args):
     sel_fraction = args.selectivityfraction
     sel_random = args.selectivityrandom
     prune_plans = args.pruneplans
-    do_cache = True
+    do_cache = False
 
     # load canary and dataset
     videos_path = config.get_value('storage', 'input')

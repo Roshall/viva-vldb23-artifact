@@ -45,7 +45,7 @@ $python calculate_metrics.py --query ${query_name} \
 rm ${hints_plan_path}
 
 # Remove temporary Spark directories (excluding /tmp/spark-events)
-clean_spark
+#clean_spark
 
 # Copy the original conf back
 cp conf.yml.orig conf.yml
