@@ -2,7 +2,7 @@ viva_root=$(dirname "$(dirname "$PWD")")
 pyscript_root=${viva_root}/viva/core
 declare -A queries=(["a"]="amsterdamdock" ["b"]="angrybernie" ["f"]="deepface" ["d"]="dunk")
 declare -A in_videos=(["a"]="dock.mp4" ["b"]="new_interview.mp4" ["f"]="an5_small.mp4" ["d"]="warrior_vs_lakers_1h.mp4")
-declare -A canaries=(["a"]="turn_left.mp4" ["b"]="angrybernie_with_jake.mp4" ["f"]="color_woman.mp4" ["d"]="niceShoot.mp4" ["k"]"fake.mp4")
+declare -A canaries=(["a"]="turn_left.mp4" ["b"]="angrybernie_with_jake.mp4" ["f"]="color_woman.mp4" ["d"]="niceShoot.mp4" ["k"]="fake.mp4")
 all_hints=("all_hints.py equals_hints.py  proxy_hints.py superset_hints.py no_hints.py")
 declare -A hints_for=(["a"]="0 1 2 4" ["b"]="0 1 2 3 4" ["f"]="0 4" ["d"]="0 2 3 4")
 python=${viva_root}/venv/bin/python

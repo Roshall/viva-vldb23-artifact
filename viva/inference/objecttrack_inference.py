@@ -3,12 +3,12 @@ import sys
 
 import torch
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../udfs/deep_sort/deep_sort/deep/reid'))
+
 from viva.inference.abstract_inference import AbstractInference
 from viva.udfs.inference import tracking_model_udf
 from viva.utils.config import viva_setup, ConfigManager
 config = ConfigManager()
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../udfs/deep_sort/deep_sort/deep/reid'))
 from viva.udfs.deep_sort.deep_sort.utils.parser import get_config
 from viva.udfs.deep_sort.deep_sort import DeepSort
 
