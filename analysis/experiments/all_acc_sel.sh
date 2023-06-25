@@ -7,8 +7,8 @@ hints_plan="all_hints.py"
 
 . viva_vars
 for i in a b f d; do
-  q="${queries["$i"]}"
-  bash run_acc_sel.sh -q "${q}" -s "${selectivity_thr}" -c "${viva_root}/dataset/${q}/canary/${canaries[$i]}" \
+  q="${queries[$i]}"
+  bash run_acc_sel.sh -q "${q}" -s "${selectivity_thr}" -c "${viva_root}/dataset/${q}/data/${in_videos[$i]}" \
   -x "${hints_plan}" -p "${proxy_thr}"
 done
 

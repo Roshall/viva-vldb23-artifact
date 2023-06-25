@@ -38,7 +38,7 @@ rm tmp0/* output0/*
 #===== Run experiment =====#
 $python calculate_metrics.py --query ${query_name} \
                              --selectivityfraction ${selectivity_fraction} \
-                             --canary ${canary_input} -p
+                             --canary ${canary_input}
 
 #===== Cleanup =====#
 # Remove experiment_hints.py
