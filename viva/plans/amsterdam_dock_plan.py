@@ -57,7 +57,7 @@ AmsterdamDockTree = {
             ]
         },
         {
-            'val': [explode_preds, (object_filter, ['night'])],
+            'val': [explode_preds, (object_filter, ['day'])],
             'children': [
                 {
                     'val': 'svm',
