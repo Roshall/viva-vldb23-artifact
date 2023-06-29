@@ -42,6 +42,10 @@ facedet_hierarchy = {
     'facedetect_tasti': 2
 }
 
+union_hierarchy = objdet_hierarchy.copy()
+union_hierarchy.update(emodet_hierarchy)
+union_hierarchy.update(facedet_hierarchy)
+
 inp_col_list = ['framebytes', 'width', 'height']
 tasti_index_pth = os.path.join(config.get_value("storage", "input"), 'tasti_index.bin')
 
