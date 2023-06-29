@@ -8,8 +8,8 @@ new_conf() {
     echo "Copying conf.yml to conf.yml.orig"
     mv conf.yml conf.yml.orig
   fi
-  sed "s|<PROXY_THRESH>|${1}|g" "${2}"/conf.yml.templ |\
-  sed "s|input:.*|input: 'dataset/${3}/data/'|" |\
-  sed "s|output:.*|output: 'output${4}/'|" |\
-  sed "s|tmp:.*|tmp: 'tmp${4}/'|" > conf.yml
+  sed "0,/<PROXY_THRESH>/s||${1}|" "${2}"/conf.yml.templ |\
+  sed "0,/<INPUT_VIDEO>/s||dataset/${3}/data/|" |\
+  sed "0,/<OUTPUT_VIDEO>/s||output${4}/|" |\
+  sed "0,/<TMP>/s||tmp${4}/|" > conf.yml
 }
