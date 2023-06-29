@@ -4,7 +4,7 @@ source viva_vars
 . helper.sh
 hints_plan_path=viva/plans/experiment_hints.py
 
-while getopts q:s:c:p:f:v:d:e:x:w: flag
+while getopts q:s:c:p:f:v:d:e:x:w:n: flag
 do
     case "${flag}" in
         q) query_name=${OPTARG};;
@@ -12,6 +12,7 @@ do
         c) canary_input=${OPTARG};;
         p) proxy_thresh=${OPTARG};;
         x) hints_plan=${OPTARG};;
+        n) out_name=${OPTARG};;
     esac
 done
 
@@ -38,7 +39,8 @@ rm tmp0/* output0/*
 #===== Run experiment =====#
 $python calculate_metrics.py --query ${query_name} \
                              --selectivityfraction ${selectivity_fraction} \
-                             --canary ${canary_input} -p
+                             --canary ${canary_input} \
+                             -p -n ${out_name}
 
 #===== Cleanup =====#
 # Remove experiment_hints.py
