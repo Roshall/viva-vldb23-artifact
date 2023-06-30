@@ -11,9 +11,12 @@ from viva.plans.plan_filters import two_people, faces_and, object_filter, simila
 
 BernieHints = {
     'equals': [
-        EqualsHint('odx', 'od'),
+        EqualsHint('odx', 'odl'),
+        EqualsHint('odl', 'odm'),
+        EqualsHint('odm', 'od'),
         EqualsHint('od', 'odn'),
-        EqualsHint('ed', 'edc')
+        EqualsHint('ed', 'edc'),
+        EqualsHint('edc', 'dem')
     ],
     'supersets': [
         SupersetHint('si', 'odx')

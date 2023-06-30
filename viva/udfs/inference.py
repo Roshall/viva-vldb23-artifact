@@ -711,14 +711,15 @@ df_emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'ne
 df_race_labels = ['asian', 'indian', 'black', 'white', 'middle eastern', 'latino hispanic']
 
 
-def preprocessing(content_series):
+def preprocessing(content_series, is_emotion=False):
     all_framebytes = content_series[0]
     all_width = content_series[1]
     all_height = content_series[2]
     s_zip = [(f, w, h) for f, w, h in zip(all_framebytes, all_width, all_height)]
     img_np_series = [np.array(bytearray(x[0])).reshape(x[2], x[1], 3) for x in s_zip]
+    target_size = (48, 48) if is_emotion else (224, 224)
     img_region_prep_series = [
-        functions.preprocess_face(img=x, target_size=(224, 224), grayscale=False, enforce_detection=False,
+        functions.preprocess_face(img=x, target_size=target_size, grayscale=is_emotion, enforce_detection=False,
                                   detector_backend='opencv', return_region=True) for x in img_np_series]
     img_prep_series = [x[0] for x in img_region_prep_series]
     img_np_series_final = np.squeeze(np.array(img_prep_series), axis=1)
@@ -749,6 +750,9 @@ def preds_and_labels(indata, model, model_type):
     elif 'Race' in model_type:
         all_preds = [np.argmax(x) for x in all_preds]
         preds_labels = [df_race_labels[x] for x in all_preds]
+    elif 'Emotion' in model_type:
+        all_preds = [np.argmax(x) for x in all_preds]
+        preds_labels = [df_emotion_labels[x] for x in all_preds]
     else:  # impossible to happen
         preds_labels = []
     return all_preds, preds_labels
@@ -788,7 +792,7 @@ def deepface_model_udf(model, model_type):
     def predict(si_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
         for content_series in si_iter:
             # Preprocess:
-            img_np_series_final, img_region_prep_series = preprocessing(content_series)
+            img_np_series_final, img_region_prep_series = preprocessing(content_series, "Emotion" in model_type)
             # Running the model
             preds, preds_labels = preds_and_labels(img_np_series_final, model, model_type)
 
