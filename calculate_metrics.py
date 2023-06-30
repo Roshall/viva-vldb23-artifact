@@ -63,20 +63,6 @@ def main(args):
     prune_plans = args.pruneplans
     do_cache = True
 
-    # load canary and dataset
-    videos_path = config.get_value('storage', 'input')
-    df_c = ingest(custom_path=build_row(canary))
-    df_i = ingest(videos_path)
-
-    # hash input dataset
-    input_dataset_hash = hash_input_dataset(df_i)
-    keys = {}
-    log_times = create_log_dict(vars(args), config, input_dataset_hash)
-    keys['selectivity'] = keygenerator(log_times)
-    log_times['canary'] = os.path.basename(canary)
-    keys['f1'] = keygenerator(log_times)
-
-    viva = VIVA(caching=do_cache)
     cp = None
     p = None
     f1_threshold = 0.9
@@ -96,6 +82,23 @@ def main(args):
         print('%s is not an implemented query' % query)
         return
 
+    # generate all plan first, that all required model will be loaded
+    plans = p.all_plans
+    # load canary and dataset
+    videos_path = config.get_value('storage', 'input')
+    df_c = ingest(custom_path=build_row(canary))
+    df_i = ingest(videos_path)
+
+    # hash input dataset
+    input_dataset_hash = hash_input_dataset(df_i)
+    keys = {}
+    log_times = create_log_dict(vars(args), config, input_dataset_hash)
+    keys['selectivity'] = keygenerator(log_times)
+    log_times['canary'] = os.path.basename(canary)
+    keys['f1'] = keygenerator(log_times)
+
+    viva = VIVA(caching=do_cache)
+
     canary_name = pathlib.Path(canary).stem
 
     # Generate canary results
@@ -105,7 +108,7 @@ def main(args):
     fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)
 
     opt = Optimizer(
-        p.all_plans, df_i, fids, viva, sel_fraction, sel_random,
+        plans, df_i, fids, viva, sel_fraction, sel_random,
         f1_threshold=f1_threshold, keys=keys, prune_plans=prune_plans
     )
     calculate_f1_scores(opt, p.hints, df_c, log_times, canary_name)
