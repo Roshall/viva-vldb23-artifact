@@ -78,7 +78,7 @@ class NodeMap:
             'dfage': (DeepFaceNode, (inp_col_list, [], 'Age')),
             'dfgender': (DeepFaceNode, (inp_col_list, [], 'Gender')),
             'dfrace': (DeepFaceNode, (inp_col_list, [], 'Race')),
-            'dem': (DeepFaceNode, (inp_col_list, [], 'Emotion')),
+            'dfemo': (DeepFaceNode, (inp_col_list, [], 'Emotion')),
             'dfprefix': (DeepFacePrefixNode, (inp_col_list, [], deepface_common_prefix_num_layers)),
             'dfsuffixage': (DeepFaceSuffixNode, (['dfprefixembed'], [], 'Age', deepface_common_prefix_num_layers + 1)),
             'dfsuffixgender': (

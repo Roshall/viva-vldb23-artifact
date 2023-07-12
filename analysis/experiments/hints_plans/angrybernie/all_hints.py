@@ -16,7 +16,7 @@ BernieHints = {
         EqualsHint('odm', 'od'),
         EqualsHint('od', 'odn'),
         EqualsHint('ed', 'edc'),
-        EqualsHint('edc', 'dem')
+        # EqualsHint('edc', 'dfemo')
     ],
     'supersets': [
         SupersetHint('si', 'odx')
