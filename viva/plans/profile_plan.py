@@ -3,6 +3,7 @@ from viva.core.planner import Planner
 
 from viva.plans.plan_filters import add_field_to_struct
 
+
 ProfileTree = {
     'val': 'skip',
     'children': [
@@ -121,6 +122,10 @@ ProfileTree = {
             ]
         },
         {
+            'val': 'dfemo',
+            'children': []
+        },
+        {
             'val': 'dfage',
             'children': []
         },
@@ -161,5 +166,4 @@ ProfileTree = {
         },
     ]
 }
-
 ProfilePlan = Planner(ProfileTree)

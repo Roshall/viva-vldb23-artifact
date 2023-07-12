@@ -14,7 +14,7 @@ pushd ${viva_root}
 $python ${pyscript_root}/latency_estimator.py
 sed -i "s/gpu:.*/gpu: True/" conf.yml
 $python ${pyscript_root}/latency_estimator.py
-lat_file="data/gpu_data_transfer.json"
+lat_file="resource/gpu_data_transfer.json"
 [ -e "${lat_file}" ] && rm "${lat_file}"
 #$python ${pyscript_root}/transfer_benchmark.py
 

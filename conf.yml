@@ -1,19 +1,19 @@
 storage:
-    input: 'dataset/dunk/data/'
+    input: 'dataset/angrybernie/data/'
     canary: 'canary/'
-    output: 'output/'
-    tmp: 'tmp/'
+    output: 'output0/'
+    tmp: 'tmp0/'
     resource: 'resource/'
 
 execution:
     gpu: True
-    proxy_confidence_thresh: 0.0
+    proxy_confidence_thresh: 0.8
     deepface_common_prefix_num_layers: 31
 
 spark:
     property: {
       'spark.logConf': 'true',
-      'spark.driver.memory': '32g',
+      'spark.driver.memory': '60g',
       'spark.sql.shuffle.partitions': 2,
       'spark.sql.execution.arrow.pyspark.enabled': 'true',
       'spark.sql.execution.arrow.pyspark.fallback.enabled': 'true',
@@ -40,4 +40,4 @@ logging:
     sparkloglevel: 'ERROR'
 
 prediction:
-  batch_size: 16
+  batch_size: 512

@@ -1,11 +1,12 @@
 #!/bin/bash
 query_name="angrybernie"
-canary_input="fake.mp4"
-input_video=("new_interview.mp4")
-selectivity_fraction=("0.05")
+. viva_vars
+input_video=("${in_videos['b']}")
+canary_input=("${canaries['b']}" "sam_${canaries['b']}")
+selectivity_fraction=("0.1")
 proxy_threshold=("0.8")
 f1_threshold=("0.8")
-hints_plan=("no_hints.py")
+hints_plan=("all_hints.py")
 #hints_plan=(all_hints.py equals_hints.py no_hints.py proxy_hints.py superset_hints.py)
 costminmax=("min")
 useGPU=${1-0}

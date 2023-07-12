@@ -48,22 +48,11 @@ cp "${script_dir}"/hints_plans/"${query_name}"/"${hints_plan}" ${hints_plan_path
 
 # If this is a warmup run, first clear tmp/ and output/. Otherwise, do not
 if [ "${do_warmup}" == "1" ]; then
-#    echo "clean all mp4 files in data"
-#    find resource/ -maxdepth 1 -iname '*.mp4' -delete
-#  mv -b output/"${query_name}"/ "${query_name}"
-    echo "Clearing tmp/ and output/"
+    echo "Clearing tmp and output"
     rm -rf "tmp${ex_id}/*" "output${ex_id}/*"
 else
-    echo "Leaving tmp/ and output/ intact"
+    echo "Leaving tmp and output intact"
 fi
-
-# Set up input video, TASTI indexes, and similarity image.
-# Assuming all are in resource/${query_name}
-
-
-#cp dataset/"${query_name}"/resource/"${input_video}" resource/sample_vid.mp4
-#cp dataset/"${query_name}"/"${query_name}"_tasti_index.bin resource/tasti_index.bin # TASTI
-#cp dataset/"${query_name}"/"${query_name}"_similarity_img.png resource/similarity_img.png # Similarity
 
 #===== Run experiment =====#
 # If do_warmup is 1, run once with minimal parameters to warm up the ingest
@@ -76,18 +65,15 @@ if [ "${do_warmup}" == "1" ]; then
                          --ingestwarmup
 fi
 
-logging_suffix="${input_video},${selectivity_fraction},${canary_input},${proxy_thresh},${f1_thresh},${costminmax},${hints_plan}"
+logging_suffix="${input_video},${selectivity_fraction},${canary_input##*/},${proxy_thresh},${f1_thresh},${costminmax},${hints_plan%.*}"
 $python run_query.py --logging "${logging_suffix}" \
                      --query "${query_name}" \
                      --selectivityfraction "${selectivity_fraction}" \
                      --f1thresh "${f1_thresh}" \
-                     --costminmax "${costminmax}" \
                      --canary "${canary_input}" \
-                     --logname "${query_name}-${hints_plan%.*}.log"
+                     --logname "${logging_suffix}.csv"
 
 #===== Cleanup =====#
-# move video back
-
 # Remove experiment_hints.py
 rm ${hints_plan_path}
 
