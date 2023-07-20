@@ -53,7 +53,7 @@ class VIVA:
             if logname is not None:
                 latencyfile = os.path.join(output_dir, logname)
 
-            lat_fd = open(latencyfile, 'w')
+            lat_fd = open(latencyfile, 'a')
             lat_fd.write(pdf_lat_csv)
             lat_fd.close()
 
@@ -174,6 +174,7 @@ class VIVA:
                         canary_path = self.config.get_value('storage', 'canary')
                         next_path = os.path.join(canary_path, 'canary_results_cache', canary_name)
                         path_name = os.path.join(next_path, '%s_%s.parquet' % (model_for_proxy, canary_name))
+                        assert os.path.exists(path_name)
                         df_temp = self.spark.read.parquet(path_name)
 
                         # Cache result so we don't need to re-read

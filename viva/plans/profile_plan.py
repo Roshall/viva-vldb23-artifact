@@ -71,19 +71,23 @@ ProfileTree = {
             'children': []
         },
         {
-            'val': 'ot',
-            'children': [
-                {
-                    'val': [(add_field_to_struct, ['objectdetect'])],
-                    'children': [
-                        {
-                            'val': 'od',
-                            'children': []
-                        }
-                    ]
-                }
-            ]
+            'val': 'od',
+            'children': []
         },
+        # {
+        #     'val': 'ot',
+        #     'children': [
+        #         {
+        #             'val': [(add_field_to_struct, ['objectdetect'])],
+        #             'children': [
+        #                 {
+        #                     'val': 'od',
+        #                     'children': []
+        #                 }
+        #             ]
+        #         }
+        #     ]
+        # },
         {
             'val': 'tod',
             'children': [
