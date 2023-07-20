@@ -1,5 +1,4 @@
 import argparse
-import csv
 import logging
 import os.path
 
@@ -15,17 +14,23 @@ spake = viva_setup()
 from viva.core.session import VIVA
 from viva.core.utils import ingest, save_to_db
 
-from viva.plans.angry_bernie_plan import AngryBerniePlan as bp
-# from viva.plans.dunk_plan import DunkPlan as dp
-# from viva.plans.amsterdam_dock_plan import AmsterdamDockPlan as ap
-# from viva.plans.deepface_plan import DeepFacePlan as fp
 
-query2plan = {
-    'angrybernie': bp,
-    # 'amsterdamdock': ap,
-    # 'dunk': dp,
-    # 'deepface': fp
+query_plan_map = {
+    'angrybernie': 'angry_bernie',
+    'amsterdamdock': 'amsterdam_dock',
+    'dunk': 'dunk',
+    'deepface': 'deep_face'
 }
+
+
+def query2plan(query: str):
+    from importlib import import_module
+    if query not in query_plan_map:
+        raise NotImplementedError(f"The query [{query}] is unsupported")
+    plan_module_name = query_plan_map[query] + '_plan'
+    plan_name = plan_module_name.title().replace('_', '')
+    module = import_module(f'viva.plans.{plan_module_name}')
+    return getattr(module, plan_name)
 
 
 parser = argparse.ArgumentParser()
@@ -38,7 +43,7 @@ args = parser.parse_args()
 log_times = {'total': 0.0}
 do_cache = False
 viva_session = VIVA(log_times, do_cache)
-plans = query2plan[args.query]
+plans = query2plan(args.query)
 plans_raw = plans.all_plans
 
 result = []
