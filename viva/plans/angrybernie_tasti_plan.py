@@ -18,7 +18,31 @@ Img2VecTree = {
         {
             'val': 'fd',
             'children': []
-        }
+        },
+        {
+            'val': 'odx',
+            'children': []
+        },
+        {
+            'val': 'odn',
+            'children': []
+        },
+        {
+            'val': 'odl',
+            'children': []
+        },
+        {
+            'val': 'odm',
+            'children': []
+        },
+        {
+            'val': 'dfemo',
+            'children': []
+        },
+        {
+            'val': 'dfver',
+            'children': []
+        },
     ]
 }
 

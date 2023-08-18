@@ -12,6 +12,7 @@ import numpy as np
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 import pandas as pd
 import torch
+
 torch.warnings.filterwarnings('ignore')
 from PIL import Image
 from itertools import islice
@@ -19,6 +20,7 @@ from typing import Iterator
 
 from viva.sparkmodels import InferenceResults, TrackResults
 from viva.utils.config import ConfigManager
+
 config = ConfigManager()
 
 from pyspark.sql.functions import pandas_udf
@@ -42,6 +44,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torch import nn
 
+import tensorflow as tf
 from tensorflow.keras.applications.imagenet_utils import decode_predictions
 
 # sys.path.append(os.path.join(os.path.dirname(__file__), 'CameraTraps'))
@@ -80,7 +83,7 @@ def content_series2batch(content_series):
 
 def raw_content2img_bytes(raw_content):
     all_bytes, width, height = raw_content
-    return np.array(bytearray(all_bytes)).reshape((height, width, 3))
+    return np.asarray(bytearray(all_bytes)).reshape((height, width, 3))
 
 
 def raw_content2img(raw_content):
@@ -103,6 +106,7 @@ def imagenet_preprocess(image):
 
 use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
 device = torch.device('cuda' if use_cuda else 'cpu')
+
 
 class ImageDataset(Dataset):
     def __init__(self, paths, preprocess_type='ImageNet'):
@@ -143,31 +147,32 @@ def imagenet_model_udf(model_fn):
                     predictions = predictions_raw.numpy()
                     # To convert to probability
                     probabilities_raw = torch.nn.functional.softmax(predictions_raw, dim=1)
-                    probabilities, _ = torch.topk(probabilities_raw, 1) # Only need the score
+                    probabilities, _ = torch.topk(probabilities_raw, 1)  # Only need the score
 
                     # Convert predictions to dictionary that matches InferenceResults
                     # Each prediction is of the form (class, description, score)
                     # We don't use the score here, rather we use the probabilities extracted above from softmax
                     next_return = []
                     decoded_predictions = decode_predictions(predictions, top=1)
-                    for dp,prob in zip(decoded_predictions,probabilities):
+                    for dp, prob in zip(decoded_predictions, probabilities):
                         next_decoded = dp[0]
                         next_label = next_decoded[1]
                         next_score = prob.item()
                         next_map = {
-                            'xmin'  : [None],
-                            'ymin'  : [None],
-                            'xmax'  : [None],
-                            'ymax'  : [None],
-                            'label' : [next_label],
-                            'cls'   : [None],
-                            'score' : [next_score]
+                            'xmin': [None],
+                            'ymin': [None],
+                            'xmax': [None],
+                            'ymax': [None],
+                            'label': [next_label],
+                            'cls': [None],
+                            'score': [next_score]
                         }
                         next_return.append(next_map)
                     predictions_pd = pd.DataFrame(next_return)
                     yield predictions_pd
 
     return predict
+
 
 def qclassification_model_udf(model_fn):
     """
@@ -195,13 +200,13 @@ def qclassification_model_udf(model_fn):
                     category_name = weights.meta["categories"][class_id]
 
                     next_map = {
-                        'xmin'  : [None],
-                        'ymin'  : [None],
-                        'xmax'  : [None],
-                        'ymax'  : [None],
-                        'label' : [category_name],
-                        'score' : [score],
-                        'cls'   : [class_id],
+                        'xmin': [None],
+                        'ymin': [None],
+                        'xmax': [None],
+                        'ymax': [None],
+                        'label': [category_name],
+                        'score': [score],
+                        'cls': [class_id],
                     }
                     next_return.append(next_map)
                 predictions_pd = pd.DataFrame(next_return)
@@ -209,10 +214,12 @@ def qclassification_model_udf(model_fn):
 
     return predict
 
+
 def yolo_model_udf(model_fn):
     """
     Define the function for model inference using YOLOv5.
     """
+
     @pandas_udf(InferenceResults)
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
         model = model_fn()
@@ -235,13 +242,13 @@ def yolo_model_udf(model_fn):
                 next_return = []
                 for dp in results_pd:
                     next_map = {
-                        'xmin'  : dp['xmin'].to_list(),
-                        'ymin'  : dp['ymin'].to_list(),
-                        'xmax'  : dp['xmax'].to_list(),
-                        'ymax'  : dp['ymax'].to_list(),
-                        'label' : dp['name'].to_list(),
-                        'cls'   : dp['class'].to_list(),
-                        'score' : dp['confidence'].to_list(),
+                        'xmin': dp['xmin'].to_list(),
+                        'ymin': dp['ymin'].to_list(),
+                        'xmax': dp['xmax'].to_list(),
+                        'ymax': dp['ymax'].to_list(),
+                        'label': dp['name'].to_list(),
+                        'cls': dp['class'].to_list(),
+                        'score': dp['confidence'].to_list(),
                     }
                     next_return.append(next_map)
 
@@ -280,6 +287,7 @@ def img2vec_model_udf(model_fn):
 
     return predict
 
+
 def kmeans_model_udf(model_fn):
     """
     Define the function for KMeans clustering
@@ -293,13 +301,13 @@ def kmeans_model_udf(model_fn):
         for content_series in content_series_iter:
             curr_results = []
             for c in content_series:
-                next_vec = np.frombuffer(bytearray(c), dtype=np.float32).reshape(vector_size,)
+                next_vec = np.frombuffer(bytearray(c), dtype=np.float32).reshape(vector_size, )
 
                 # Find the cluster with the max cosine similarity
                 max_ind = -1
                 max_sim = -1
                 for i in range(centroids.shape[0]):
-                    next_centroid = centroids[i,:]
+                    next_centroid = centroids[i, :]
                     sim = cosine_similarity(next_vec.reshape((1, -1)), next_centroid.reshape((1, -1)))[0][0]
                     if sim > max_sim:
                         max_sim = sim
@@ -311,13 +319,13 @@ def kmeans_model_udf(model_fn):
 
                 # Build the result
                 next_map = {
-                    'xmin'  : [None],
-                    'ymin'  : [None],
-                    'xmax'  : [None],
-                    'ymax'  : [None],
-                    'label' : label,
-                    'cls'   : [None],
-                    'score' : score,
+                    'xmin': [None],
+                    'ymin': [None],
+                    'xmax': [None],
+                    'ymax': [None],
+                    'label': label,
+                    'cls': [None],
+                    'score': score,
                 }
                 curr_results.append(next_map)
 
@@ -325,6 +333,7 @@ def kmeans_model_udf(model_fn):
             yield predictions_pd
 
     return predict
+
 
 def action_model_udf(model_fn):
     """
@@ -352,14 +361,14 @@ def action_model_udf(model_fn):
         mean = [0.45, 0.45, 0.45]
         std = [0.225, 0.225, 0.225]
         crop_size = 256
-        num_frames = 40 # This parameter needs to be tuned
+        num_frames = 40  # This parameter needs to be tuned
 
-        transform =  ApplyTransformToKey(
+        transform = ApplyTransformToKey(
             key="video",
             transform=Compose(
                 [
                     UniformTemporalSubsample(num_frames),
-                    Lambda(lambda x: x/255.0),
+                    Lambda(lambda x: x / 255.0),
                     NormalizeVideo(mean, std),
                     ShortSideScale(
                         size=side_size
@@ -373,12 +382,13 @@ def action_model_udf(model_fn):
             # Reverse content series for creating batches
             batches = content_series2batch(content_series)
 
-            for i,b in enumerate(batches):
+            for i, b in enumerate(batches):
                 # Prepare next batch to be fed in
                 all_tensors = []
                 for bb in b:
                     inp_bytes, inp_width, inp_height = bb
-                    img_torch = torch.frombuffer(bytearray(inp_bytes), dtype=torch.uint8).reshape(inp_height, inp_width, 3)
+                    img_torch = torch.frombuffer(bytearray(inp_bytes), dtype=torch.uint8).reshape(inp_height, inp_width,
+                                                                                                  3)
                     img_torch = img_torch.permute(2, 0, 1)
                     all_tensors.append(img_torch)
 
@@ -399,13 +409,13 @@ def action_model_udf(model_fn):
                 pred_score = preds.topk(k=1).values[0].item()
 
                 next_map = {
-                    'xmin'  : [None],
-                    'ymin'  : [None],
-                    'xmax'  : [None],
-                    'ymax'  : [None],
-                    'label' : [pred_label],
-                    'cls'   : [int(pred_class)],
-                    'score' : [pred_score]
+                    'xmin': [None],
+                    'ymin': [None],
+                    'xmax': [None],
+                    'ymax': [None],
+                    'label': [pred_label],
+                    'cls': [int(pred_class)],
+                    'score': [pred_score]
                 }
                 # Assign the same output to all inputs since the output length
                 # must be the same as the length of the input
@@ -427,20 +437,20 @@ def emotion_model_udf(model_fn):
         model = model_fn()
 
         class_map = {
-            "angry"    : 0,
-            "disgust"  : 1,
-            "fear"     : 2,
-            "happy"    : 3,
-            "sad"      : 4,
-            "surprise" : 5,
-            "neutral"  : 6
+            "angry": 0,
+            "disgust": 1,
+            "fear": 2,
+            "happy": 3,
+            "sad": 4,
+            "surprise": 5,
+            "neutral": 6
         }
 
         for content_series in content_series_iter:
             # Reverse content series for creating batches
             batches = content_series2batch(content_series)
 
-            for i,b in enumerate(batches):
+            for i, b in enumerate(batches):
                 curr_results = []
                 for bb in b:
                     img = raw_content2img_bytes(bb)
@@ -449,13 +459,13 @@ def emotion_model_udf(model_fn):
                     # Convert predictions to dictionary that matches InferenceResults
                     # A tad tricky to format: dict is defined before being built up
                     next_map = {
-                        'xmin'  : [],
-                        'ymin'  : [],
-                        'xmax'  : [],
-                        'ymax'  : [],
-                        'label' : [],
-                        'cls'   : [],
-                        'score' : []
+                        'xmin': [],
+                        'ymin': [],
+                        'xmax': [],
+                        'ymax': [],
+                        'label': [],
+                        'cls': [],
+                        'score': []
                     }
                     for p in prediction:
                         box = p['box']
@@ -480,16 +490,19 @@ def emotion_model_udf(model_fn):
     return predict
 
 
-vgg_labels = np.load(os.path.join(config.get_value('storage', 'resource'), 'rcmalli_vggface_labels_v2.npy'))
-bernie_emb = torch.load(os.path.join(config.get_value('storage', 'resource'), 'bernie_emb.pt')).to(device, non_blocking=True)
-cosine_sim = nn.CosineSimilarity(dim=1)
-sim_trd = 0.6
+
 
 
 def facenet_model_udf(model_fn):
     """
     Define the function for model inference using facenet
     """
+    vgg_labels = np.load(os.path.join(config.get_value('storage', 'resource'), 'rcmalli_vggface_labels_v2.npy'))
+    bernie_emb = torch.load(os.path.join(config.get_value('storage', 'resource'), 'bernie_emb.pt')).to(device,
+                                                                                                       non_blocking=True)
+    cosine_sim = nn.CosineSimilarity(dim=1)
+    sim_trd = 0.6
+
     @pandas_udf(InferenceResults)
     def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
         # Define the function for model inference using face recognition (MTCNN + IncRes)
@@ -516,13 +529,13 @@ def facenet_model_udf(model_fn):
                 img_crops = mtcnn(next_inp_list)
                 for idx, img_cropped in enumerate(img_crops):
                     next_map = {
-                        'xmin'  : [],
-                        'ymin'  : [],
-                        'xmax'  : [],
-                        'ymax'  : [],
-                        'label' : [],
-                        'cls' : [],
-                        'score' : []
+                        'xmin': [],
+                        'ymin': [],
+                        'xmax': [],
+                        'ymax': [],
+                        'label': [],
+                        'cls': [],
+                        'score': []
                     }
 
                     # If there are no faces, we skip
@@ -530,14 +543,14 @@ def facenet_model_udf(model_fn):
                         # first check bernie
                         model.classify = False
                         img_embeddings = model(img_cropped.to(device, non_blocking=True))
-                        distance = cosine_sim(bernie_emb, img_embeddings)
-                        bernie_index = (distance > sim_trd).nonzero()
+                        sim = cosine_sim(bernie_emb, img_embeddings)
+                        bernie_index = (sim > sim_trd).nonzero()
                         model.classify = True
 
                         prediction = model(img_cropped.to(device, non_blocking=True))
                         # To convert to probability
                         probabilities_raw = torch.nn.functional.softmax(prediction, dim=1)
-                        probabilities, _ = torch.topk(probabilities_raw, 1) # Only need the score
+                        probabilities, _ = torch.topk(probabilities_raw, 1)  # Only need the score
 
                         # Get the output and labels
                         max_vals = torch.max(prediction, dim=1)
@@ -569,7 +582,8 @@ def facenet_model_udf(model_fn):
 
     return predict
 
-#TODO: IMPORTANT!!!! This UDF needs to be updated to support raw binary image inputs
+
+# TODO: IMPORTANT!!!! This UDF needs to be updated to support raw binary image inputs
 # def animal_model_udf(model_fn):
 #     """
 #     Define the function for model inference using animal detect (MegaDetector)
@@ -651,8 +665,8 @@ def tracking_model_udf(model_fn):
                 # if idx % 10 == 0:
                 #     print('Object tracker %d of %d' % (idx+1, len(content_series[3])))
 
-                inp_bytes  = content_series[0][idx]
-                inp_width  = content_series[1][idx]
+                inp_bytes = content_series[0][idx]
+                inp_width = content_series[1][idx]
                 inp_height = content_series[2][idx]
                 img = np.array(bytearray(inp_bytes)).reshape(inp_height, inp_width, 3)
 
@@ -669,14 +683,14 @@ def tracking_model_udf(model_fn):
                 cls = det[:, 5]
                 results = deepsort.update(xywhs, confs, cls, img)
                 next_map = {
-                    'xmin'  : [],
-                    'ymin'  : [],
-                    'xmax'  : [],
-                    'ymax'  : [],
-                    'label' : [],
-                    'track' : [],
-                    'cls'  :  [],
-                    'score' : []
+                    'xmin': [],
+                    'ymin': [],
+                    'xmax': [],
+                    'ymax': [],
+                    'label': [],
+                    'track': [],
+                    'cls': [],
+                    'score': []
                 }
                 if len(results) > 0:
                     tid = results[:, 4]
@@ -687,14 +701,14 @@ def tracking_model_udf(model_fn):
                     # ymax = results[:, 3]
                     # label = results[:, 5]
                     next_map = {
-                        'xmin'  : list(row.xmin),
-                        'ymin'  : list(row.ymin),
-                        'xmax'  : list(row.xmax),
-                        'ymax'  : list(row.ymax),
-                        'label' : list(row.label),
-                        'track' : tid.tolist(),
-                        'cls'   : list(row.cls),
-                        'score' : list(row.score)
+                        'xmin': list(row.xmin),
+                        'ymin': list(row.ymin),
+                        'xmax': list(row.xmax),
+                        'ymax': list(row.ymax),
+                        'label': list(row.label),
+                        'track': tid.tolist(),
+                        'cls': list(row.cls),
+                        'score': list(row.score)
                     }
                 # append results even if empty
                 curr_results.append(next_map)
@@ -711,36 +725,20 @@ df_emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'ne
 df_race_labels = ['asian', 'indian', 'black', 'white', 'middle eastern', 'latino hispanic']
 
 
-def preprocessing(content_series, is_emotion=False):
-    all_framebytes = content_series[0]
-    all_width = content_series[1]
-    all_height = content_series[2]
-    s_zip = [(f, w, h) for f, w, h in zip(all_framebytes, all_width, all_height)]
-    img_np_series = [np.array(bytearray(x[0])).reshape(x[2], x[1], 3) for x in s_zip]
-    target_size = (48, 48) if is_emotion else (224, 224)
-    img_region_prep_series = [
-        functions.preprocess_face(img=x, target_size=target_size, grayscale=is_emotion, enforce_detection=False,
-                                  detector_backend='opencv', return_region=True) for x in img_np_series]
-    img_prep_series = [x[0] for x in img_region_prep_series]
-    img_np_series_final = np.squeeze(np.array(img_prep_series), axis=1)
-    return img_np_series_final, img_region_prep_series
+def preprocessing(content_series, backend='dlib', target_size=(224, 224), is_emotion=False):
+    content_series_fwh = pack_content_series(content_series)
+    faces_series = [
+        functions.extract_faces(img=raw_content2img_bytes(f), detector_backend=backend, target_size=target_size,
+                                grayscale=is_emotion, enforce_detection=False) for f in content_series_fwh]
+    # convert to tf.tensor for better performance during predicting
+    # see https://www.tensorflow.org/guide/function#controlling_retracing
+    img_np_series_final = tf.squeeze([face[0] for faces_in_an_img in faces_series for face in faces_in_an_img], axis=1)
+    return img_np_series_final, faces_series
 
 
 # Takes a prefix model as input, returns a column (pd.Series) that stores the embedding.
-def deepface_prefix_model_udf(model):
-    @pandas_udf(BinaryType())
-    def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.Series]:
-        for content_series in content_series_iter:
-            img_np_series_final, _ = preprocessing(content_series)
-            embeds = model.predict(img_np_series_final, batch_size=batch_size)
-            # flatten the embeddings:
-            embeds_flat = [x.tobytes() for x in embeds]
-            yield pd.Series(embeds_flat)
-    return predict
-
-
-def preds_and_labels(indata, model, model_type):
-    all_preds = model.predict(indata, batch_size=batch_size)
+def preds_and_labels(faces, model, model_type, bs=batch_size):
+    all_preds = model.predict(tf.convert_to_tensor(faces, d), batch_size=bs, verbose=0)
     if 'Age' in model_type:
         all_preds = [int(Age.findApparentAge(x)) for x in all_preds]
         preds_labels = [str(x) for x in all_preds]
@@ -758,13 +756,25 @@ def preds_and_labels(indata, model, model_type):
     return all_preds, preds_labels
 
 
+def deepface_prefix_model_udf(model):
+    @pandas_udf(BinaryType())
+    def predict(content_series_iter: Iterator[pd.Series]) -> Iterator[pd.Series]:
+        for content_series in content_series_iter:
+            img_np_series_final, _ = preprocessing(content_series)
+            embeds = model.predict(img_np_series_final, batch_size=batch_size, verbose=0)
+            # flatten the embeddings:
+            embeds_flat = [x.tobytes() for x in embeds]
+            yield pd.Series(embeds_flat)
+
+    return predict
+
+
 # Takes as input full model, layer_id to split the model into pre,suffix
 def deepface_suffix_model_udf(model, model_type, layer_id):
     @pandas_udf(InferenceResults)
     def predict(si_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
-
         # first, split the model to get the suffix, starting from layer_id: (prefix has layers [0,layer_id-1])
-        model_pre, model_suffix = split_tf_model(model, layer_id-1)
+        model_pre, model_suffix = split_tf_model(model, layer_id - 1)
         pre_embed_dim = model_pre.layers[-1].output_shape[1:]
 
         for content_series in si_iter:
@@ -774,37 +784,95 @@ def deepface_suffix_model_udf(model, model_type, layer_id):
             all_preds, preds_labels = preds_and_labels(all_embeds, model_suffix, model_type)
 
             preds_df = [{
-                'xmin': [None], 
-                'xmax': [None], 
-                'ymin': [None], 
-                'ymax': [None], 
-                'label': [preds_labels[i]], 
-                'cls': [all_preds[i]], 
+                'xmin': [None],
+                'xmax': [None],
+                'ymin': [None],
+                'ymax': [None],
+                'label': [preds_labels[i]],
+                'cls': [all_preds[i]],
                 'score': [1.0]
             } for i in range(len(all_preds))]
 
             yield pd.DataFrame(preds_df)
+
     return predict
 
 
+def format_result(imgs_infos, preds, labels):
+    counter = 0
+    pred_result = []
+    for faces in imgs_infos:
+        out_map = np.empty((len(faces), 6))
+        labels4an_image = []
+        for i, face_info in enumerate(faces):
+            bbox = face_info[1]
+            x, y, w, h = bbox['x'], bbox['y'], bbox['w'], bbox['h']
+            x1, y1 = x + w, y + h
+            out_map[i] = x, y, x1, y1, preds[counter], 1.0
+            labels4an_image.append(labels[counter])
+            counter += 1
+        pred_result.append(
+            {
+                'xmin': out_map[:, 0],
+                'ymin': out_map[:, 1],
+                'xmax': out_map[:, 2],
+                'ymax': out_map[:, 3],
+                'cls': out_map[:, 4],
+                'score': out_map[:, 5],
+                'label': labels4an_image,
+            })
+    return pred_result
+
+
 def deepface_model_udf(model, model_type):
+    paras = {}
+    bs = batch_size
+    is_emotion = "Emotion" in model_type
+    if is_emotion:
+        paras['is_emotion'] = True
+        paras['target_size'] = (48, 48)
+        bs *= (240 // 48)  # FIXME: magic number
+    else:
+        paras['is_emotion'] = True
+        paras['target_size'] = (224, 224)
+
     @pandas_udf(InferenceResults)
     def predict(si_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
         for content_series in si_iter:
-            # Preprocess:
-            img_np_series_final, img_region_prep_series = preprocessing(content_series, "Emotion" in model_type)
+            # Note the region_prep dim meaning: (imgs_num, faces_num, face_info_size)
+            # face_info : (framebytes, bbox_xywh, confident)
+            faces_cropped, img_region_prep_series = preprocessing(content_series, **paras)
             # Running the model
-            preds, preds_labels = preds_and_labels(img_np_series_final, model, model_type)
+            preds, preds_labels = preds_and_labels(faces_cropped, model, model_type, bs)
 
-            preds_df = [{
-                'xmin': [img_region_prep_series[i][1][0]],
-                'xmax': [img_region_prep_series[i][1][2]],
-                'ymin': [img_region_prep_series[i][1][1]],
-                'ymax': [img_region_prep_series[i][1][3]],
-                'label': [preds_labels[i]],
-                'cls': [preds[i]],
-                'score': [1.0]
-            } for i in range(len(preds))]
-            yield pd.DataFrame(preds_df)
+            yield pd.DataFrame(format_result(img_region_prep_series, preds, preds_labels))
+
+    return predict
+
+
+def deepface_verify_model_udf(model, model_name, backend):
+    from deepface.commons.distance import findCosineDistance
+    jake_bernie_emb = np.load(os.path.join(config.get_value('storage', 'resource'), 'jake_bernie_embs.npy'))
+    model_input_size = functions.find_target_size(model_name)
+    verify_thr = 0.4
+    names = ['Jake_Tapper', 'Bernie', 'so']
+
+    @pandas_udf(InferenceResults)
+    def predict(si_iter: Iterator[pd.Series]) -> Iterator[pd.DataFrame]:
+        for content_series in si_iter:
+            imgs_faces_cropped, imgs_regions = preprocessing(content_series, backend=backend,
+                                                             target_size=model_input_size)
+            bs = batch_size * 2
+            # faces verification via embedding similarity
+            embeddings = model.predict(imgs_faces_cropped, batch_size=bs, verbose=0)
+            embeddings = embeddings[np.newaxis]
+            cosine_dst = findCosineDistance(jake_bernie_emb, embeddings)
+            indices = (cosine_dst < verify_thr).nonzero()
+            preds = np.zeros(embeddings.shape[1])
+            labels = [names[2]] * embeddings.shape[1]
+            for who, pos in zip(*indices):
+                labels[pos] = names[who]
+                preds[pos] = who + 1
+            yield pd.DataFrame(format_result(imgs_regions, preds, labels))
 
     return predict

@@ -13,7 +13,7 @@ from viva.inference.objecttrack_inference import ObjectTrackInference
 from viva.inference.img2vec_inference import Img2VecInference
 from viva.inference.kmeans_inference import KMeansInference
 from viva.inference.deepface_inference import (
-    DeepFaceInference, DeepFacePrefixInference, DeepFaceSuffixInference
+    DeepFaceInference, DeepFacePrefixInference, DeepFaceSuffixInference, DeepFaceVerify
 )
 
 class ObjectDetectNode(Node):
@@ -111,29 +111,13 @@ class Img2VecNode(Node):
         operator = Img2VecInference().model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
-class TASTIObjectDetectNode(Node):
-    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
-        out_column = 'objectdetect_tasti'
-        operator = KMeansInference('objectdetect', index_path).model_udf
+
+class TASTINode(Node):
+    def __init__(self, in_columns: List[str], base_model: str, index_path: str, in_literals: List[str] = []):
+        out_column = f'{base_model}_tasti'
+        operator = KMeansInference(base_model, index_path).model_udf
         super().__init__(in_columns, out_column, operator, in_literals)
 
-class TASTIEmotionDetectNode(Node):
-    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
-        out_column = 'emotiondetect_tasti'
-        operator = KMeansInference('emotiondetect', index_path).model_udf
-        super().__init__(in_columns, out_column, operator, in_literals)
-
-class TASTIFaceDetectNode(Node):
-    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
-        out_column = 'facedetect_tasti'
-        operator = KMeansInference('facedetect', index_path).model_udf
-        super().__init__(in_columns, out_column, operator, in_literals)
-
-class TASTIActionDetectNode(Node):
-    def __init__(self, in_columns: List[str], index_path: str, in_literals: List[str] = []):
-        out_column = 'actiondetect_tasti'
-        operator = KMeansInference('actiondetect', index_path).model_udf
-        super().__init__(in_columns, out_column, operator, in_literals)
 
 class DeepFaceNode(Node):
     def __init__(self, in_columns: List[str], in_literals: List[str] = [], model_type = 'Age'):
@@ -152,4 +136,11 @@ class DeepFaceSuffixNode(Node):
     def __init__(self, in_columns: List[str], in_literals: List[str] = [], model_type = 'Age', layer_id = 32):
         out_column = 'deepfaceSuffix'+model_type
         operator = DeepFaceSuffixInference(model_type, layer_id).model_udf
+        super().__init__(in_columns, out_column, operator, in_literals)
+
+
+class DeepFaceVerifyNode(Node):
+    def __init__(self, in_columns: List[str], in_literals: List[str] = []):
+        out_column = 'deepfaceVerify'
+        operator = DeepFaceVerify().model_udf
         super().__init__(in_columns, out_column, operator, in_literals)

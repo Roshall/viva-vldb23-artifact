@@ -6,9 +6,8 @@ from viva.nodes.inference_nodes import (
     ObjectDetectNodeMedium, ObjectDetectNodeLarge, FaceDetectNode,
     EmotionDetectNode, ClassificationNode, QuantizedClassificationNode,
     ObjectTrackNode, ActionDetectNode, ProxyClassificationNode, Img2VecNode,
-    TASTIObjectDetectNode, TASTIEmotionDetectNode, TASTIFaceDetectNode,
-    TASTIActionDetectNode, EmotionDetectNodeCascades, DeepFaceNode,
-    DeepFacePrefixNode, DeepFaceSuffixNode
+    EmotionDetectNodeCascades, DeepFaceNode,
+    DeepFacePrefixNode, DeepFaceSuffixNode, DeepFaceVerifyNode, TASTINode
 )
 from viva.nodes.miscellaneous_nodes import (
     TranscriptSearchNode, SimilarityNode, BrightnessNode, SVMNode, MotionNode,
@@ -71,14 +70,21 @@ class NodeMap:
             'odx': (ObjectDetectNodeXLarge, (inp_col_list,)),
             'ot': (ObjectTrackNode, (inp_col_list,)),
             'i2v': (Img2VecNode, (inp_col_list,)),
-            'tod': TASTIObjectDetectNode(['img2vec'], tasti_index_pth),
-            'ted': TASTIEmotionDetectNode(['img2vec'], tasti_index_pth),
-            'tfd': TASTIFaceDetectNode(['img2vec'], tasti_index_pth),
-            'tad': TASTIActionDetectNode(['img2vec'], tasti_index_pth),
+            'tod': TASTINode(['img2vec'], 'objectdetect', tasti_index_pth),
+            'todx': TASTINode(['img2vec'], 'objectdetect_xlarge', tasti_index_pth),
+            'todl': TASTINode(['img2vec'], 'objectdetect_large', tasti_index_pth),
+            'todm': TASTINode(['img2vec'], 'objectdetect_medium', tasti_index_pth),
+            'todn': TASTINode(['img2vec'], 'objectdetect_nano', tasti_index_pth),
+            'tdfe': TASTINode(['img2vec'], 'deepfaceEmotion', tasti_index_pth),
+            'tdfv': TASTINode(['img2vec'], 'deepfaceVerify', tasti_index_pth),
+            'ted': TASTINode(['img2vec'], 'emotiondetect', tasti_index_pth),
+            'tfd': TASTINode(['img2vec'], 'facedetect', tasti_index_pth),
+            'tad': TASTINode(['img2vec'], 'actiondetect', tasti_index_pth),
             'dfage': (DeepFaceNode, (inp_col_list, [], 'Age')),
             'dfgender': (DeepFaceNode, (inp_col_list, [], 'Gender')),
             'dfrace': (DeepFaceNode, (inp_col_list, [], 'Race')),
             'dfemo': (DeepFaceNode, (inp_col_list, [], 'Emotion')),
+            'dfver': (DeepFaceVerifyNode, (inp_col_list,)),
             'dfprefix': (DeepFacePrefixNode, (inp_col_list, [], deepface_common_prefix_num_layers)),
             'dfsuffixage': (DeepFaceSuffixNode, (['dfprefixembed'], [], 'Age', deepface_common_prefix_num_layers + 1)),
             'dfsuffixgender': (

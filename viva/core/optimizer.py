@@ -166,27 +166,6 @@ class Optimizer:
                             if (dif < 0 <= dif2) or (dif > 0 > dif2):
                                 candidate_to_skip = self._acc_cache[k]
 
-                    # if 'objectdetect' in curr_clean and 'objectdetect' in comp_clean:
-                    #     if (objdet_hierarchy[curr_clean] < objdet_hierarchy[comp_clean]) and \
-                    #         self._acc_cache[k][0] >= self.f1_threshold:
-                    #         candidate_to_skip = self._acc_cache[k]
-                    #     elif (objdet_hierarchy[curr_clean] > objdet_hierarchy[comp_clean]) and \
-                    #         self._acc_cache[k][0] < self.f1_threshold:
-                    #         candidate_to_skip = self._acc_cache[k]
-                    # elif 'emotiondetect' in curr_clean and 'emotiondetect' in comp_clean:
-                    #     if (emodet_hierarchy[curr_clean] < emodet_hierarchy[comp_clean]) and \
-                    #         self._acc_cache[k][0] >= self.f1_threshold:
-                    #         candidate_to_skip = self._acc_cache[k]
-                    #     elif (emodet_hierarchy[curr_clean] > emodet_hierarchy[comp_clean]) and \
-                    #         self._acc_cache[k][0] < self.f1_threshold:
-                    #         candidate_to_skip = self._acc_cache[k]
-                    # elif 'facedetect' in curr_clean and 'facedetect' in comp_clean:
-                    #     if (facedet_hierarchy[curr_clean] < facedet_hierarchy[comp_clean]) and \
-                    #         self._acc_cache[k][0] >= self.f1_threshold:
-                    #         candidate_to_skip = self._acc_cache[k]
-                    #     elif (facedet_hierarchy[curr_clean] > facedet_hierarchy[comp_clean]) and \
-                    #         self._acc_cache[k][0] < self.f1_threshold:
-                    #         candidate_to_skip = self._acc_cache[k]
                 if candidate_to_skip is not None:
                     #logging.warn(f'{plan} was skipped!!!')
                     return self._acc_cache[k]
