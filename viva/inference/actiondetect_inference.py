@@ -18,18 +18,14 @@ class ActionDetectInference(AbstractInference):
         self.model_udf = self._prepare_model_udf()
 
     def _prepare_model_udf(self):
-        action = torch.hub.load(repo_or_dir="/home/lg/.cache/torch/hub/facebookresearch_pytorchvideo_main",
-                                model='slow_r50', pretrained=True,
-                                verbose=True, source='local')
+        action = torch.hub.load('facebookresearch/pytorchvideo', 'slow_r50', pretrained=True, verbose=False)
         bc_action_state = self.sc.broadcast(action.state_dict())
         use_cuda = torch.cuda.is_available() and config.get_value('execution', 'gpu')
         device = torch.device('cuda' if use_cuda else 'cpu')
 
         def action_fn():
             """Gets the broadcasted model."""
-            model = torch.hub.load(repo_or_dir="/home/lg/.cache/torch/hub/facebookresearch_pytorchvideo_main",
-                                   model='slow_r50', pretrained=True,
-                                verbose=True, source='local')
+            model = torch.hub.load('facebookresearch/pytorchvideo', 'slow_r50', pretrained=True, verbose=False)
             model.load_state_dict(bc_action_state.value)
             model.to(device)
             model.eval()
