@@ -1,6 +1,8 @@
 import argparse
+import logging
 import os
 import pathlib
+from timeit import default_timer as now
 
 from viva.utils.config import viva_setup, ConfigManager
 
@@ -65,7 +67,7 @@ def main(args):
 
     cp = None
     p = None
-    f1_threshold = 0.9
+    f1_threshold = 0.85
     if query == 'angrybernie':
         from viva.plans.angry_bernie_plan import AngryBernieCanaryPlan as cp
         from viva.plans.angry_bernie_plan import AngryBerniePlan as p
@@ -83,7 +85,11 @@ def main(args):
         return
 
     # generate all plan first, that all required model will be loaded
+    start = now()
     plans = p.all_plans
+    end = now()
+    print(f"all plans generation cost: {end - start}")
+
     # load canary and dataset
     videos_path = config.get_value('storage', 'input')
     df_c = ingest(custom_path=build_row(canary))
@@ -97,12 +103,17 @@ def main(args):
     log_times['canary'] = os.path.basename(canary)
     keys['f1'] = keygenerator(log_times)
 
+    log_times['plans_gen_cost'] = end - start
+
+
     viva = VIVA(caching=do_cache)
 
     canary_name = pathlib.Path(canary).stem
 
     # Generate canary results
+    start = now()
     gen_canary_results(df_c, canary_name, p.all_plans)
+    log_times['canary_all_models_cost'] = now() - start
 
     # calculate accuracy on canary using canary plan
     fids = canary_frame_ids(cp, viva, df_c, log_times, canary_name)

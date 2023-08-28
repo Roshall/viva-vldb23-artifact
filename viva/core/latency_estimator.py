@@ -23,31 +23,37 @@ from viva.plans.profile_plan import ProfilePlan
 # Produce batch_scale * batch_size inputs so that we get an accurate estimate
 # of time per batch without initial startup overhead. We then divide the final
 # end to end time by this value.
-batch_scale = 1
-batch_size = 16
+batch_scale = 10
+batch_size = config.get_value('prediction', 'batch_size')
+use_gpu = config.get_value('execution', 'gpu')
+# batch_size = 16
+
 overwrite_ops = False
 
 GPU_NODES = [
-    'actiondetect',
-    'classification',
-    'qclassification',
+    # 'actiondetect',
+    # 'classification',
+    # 'qclassification',
     'facedetect',
     'objectdetect',
     'objectdetect_large',
     'objectdetect_medium',
     'objectdetect_nano',
     'objectdetect_xlarge',
-    'objecttrack',
-    'proxyclassification',
+    # 'objecttrack',
+    # 'proxyclassification',
     'img2vec',
     'emotiondetect',
-    'deepfaceAge',
-    'deepfaceGender',
-    'deepfaceRace',
-    'dfprefixembed',
-    'deepfaceSuffixAge',
-    'deepfaceSuffixGender',
-    'deepfaceSuffixRace',
+    'emotiondetect_cascades',
+    # 'deepfaceAge',
+    # 'deepfaceGender',
+    # 'deepfaceRace',
+    # 'dfprefixembed',
+    # 'deepfaceSuffixAge',
+    # 'deepfaceSuffixGender',
+    # 'deepfaceSuffixRace',
+    'deepfaceEmotion',
+    'deepfaceVerify',
 ]
 
 def gen_lat_input_df(batch_size: int) -> ppd.DataFrame:
@@ -58,7 +64,6 @@ def gen_lat_input_df(batch_size: int) -> ppd.DataFrame:
 def profile_node_latencies(df: ppd.DataFrame, prof_map: Dict[str, int], warmup: bool=False) ->  Dict[str, int]:
     # Any plan will do
     plan = ProfilePlan.all_plans[0]
-    use_gpu = config.get_value('execution', 'gpu')
     if warmup:
         print('Warm up run')
 
@@ -105,7 +110,7 @@ def profile_ops(output_name: str, batch_size: int, overwrite_ops: bool = False) 
             fd.close()
 
     # warm up run
-    _ = profile_node_latencies(gen_lat_input_df(batch_size), prof_map, True)
+    _ = profile_node_latencies(gen_lat_input_df(32), prof_map, True)
 
     df = gen_lat_input_df(batch_size)
     prof_map = profile_node_latencies(df, prof_map)
@@ -115,7 +120,6 @@ def profile_ops(output_name: str, batch_size: int, overwrite_ops: bool = False) 
     fd.close()
 
 if __name__ == '__main__':
-    use_gpu = config.get_value('execution', 'gpu')
     if use_gpu:
         fname = 'op_latency_bmarks_gpu.json'
     else:

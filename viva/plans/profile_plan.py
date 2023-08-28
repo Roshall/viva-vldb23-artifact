@@ -7,10 +7,10 @@ from viva.plans.plan_filters import add_field_to_struct
 ProfileTree = {
     'val': 'skip',
     'children': [
-        {
-            'val': 'ts',
-            'children': []
-        },
+        # {
+        #     'val': 'ts',
+        #     'children': []
+        # },
         {
             'val': 'si',
             'children': []
@@ -19,14 +19,14 @@ ProfileTree = {
             'val': 'bi',
             'children': []
         },
-        {
-            'val': 'svm',
-            'children': []
-        },
-        {
-            'val': 'md',
-            'children': []
-        },
+        # {
+        #     'val': 'svm',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'md',
+        #     'children': []
+        # },
         {
             'val': 'fd',
             'children': []
@@ -39,20 +39,24 @@ ProfileTree = {
             'val': 'edc',
             'children': []
         },
+        # {
+        #     'val': 'cl',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'qcl',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'pc',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'ad',
+        #     'children': []
+        # },
         {
-            'val': 'cl',
-            'children': []
-        },
-        {
-            'val': 'qcl',
-            'children': []
-        },
-        {
-            'val': 'pc',
-            'children': []
-        },
-        {
-            'val': 'ad',
+            'val': 'od',
             'children': []
         },
         {
@@ -71,20 +75,20 @@ ProfileTree = {
             'val': 'odn',
             'children': []
         },
-        {
-            'val': 'ot',
-            'children': [
-                {
-                    'val': [(add_field_to_struct, ['objectdetect'])],
-                    'children': [
-                        {
-                            'val': 'od',
-                            'children': []
-                        }
-                    ]
-                }
-            ]
-        },
+        # {
+        #     'val': 'ot',
+        #     'children': [
+        #         {
+        #             'val': [(add_field_to_struct, ['objectdetect'])],
+        #             'children': [
+        #                 {
+        #                     'val': 'od',
+        #                     'children': []
+        #                 }
+        #             ]
+        #         }
+        #     ]
+        # },
         {
             'val': 'tod',
             'children': [
@@ -112,8 +116,64 @@ ProfileTree = {
                 }
             ]
         },
+        # {
+        #     'val': 'tad',
+        #     'children': [
+        #         {
+        #             'val': 'i2v',
+        #             'children': []
+        #         }
+        #     ]
+        # },
+        # {
+        #     'val': 'dfage',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'dfgender',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'dfrace',
+        #     'children': []
+        # },
+        # {
+        #     'val': 'dfsuffixage',
+        #     'children': [
+        #         {
+        #             'val': 'dfprefix',
+        #             'children': []
+        #         }
+        #     ]
+        # },
+        # {
+        #     'val': 'dfsuffixgender',
+        #     'children': [
+        #         {
+        #             'val': 'dfprefix',
+        #             'children': []
+        #         }
+        #     ]
+        # },
+        # {
+        #     'val': 'dfsuffixrace',
+        #     'children': [
+        #         {
+        #             'val': 'dfprefix',
+        #             'children': []
+        #         }
+        #     ]
+        # },
         {
-            'val': 'tad',
+            'val': 'dfemo',
+            'children': []
+        },
+        {
+            'val': 'dfver',
+            'children': []
+        },
+        {
+            'val': 'todx',
             'children': [
                 {
                     'val': 'i2v',
@@ -122,44 +182,46 @@ ProfileTree = {
             ]
         },
         {
-            'val': 'dfemo',
-            'children': []
-        },
-        {
-            'val': 'dfage',
-            'children': []
-        },
-        {
-            'val': 'dfgender',
-            'children': []
-        },
-        {
-            'val': 'dfrace',
-            'children': []
-        },
-        {
-            'val': 'dfsuffixage',
+            'val': 'todl',
             'children': [
                 {
-                    'val': 'dfprefix',
+                    'val': 'i2v',
                     'children': []
                 }
             ]
         },
         {
-            'val': 'dfsuffixgender',
+            'val': 'todm',
             'children': [
                 {
-                    'val': 'dfprefix',
+                    'val': 'i2v',
                     'children': []
                 }
             ]
         },
         {
-            'val': 'dfsuffixrace',
+            'val': 'todn',
             'children': [
                 {
-                    'val': 'dfprefix',
+                    'val': 'i2v',
+                    'children': []
+                }
+            ]
+        },
+        {
+            'val': 'tdfe',
+            'children': [
+                {
+                    'val': 'i2v',
+                    'children': []
+                }
+            ]
+        },
+        {
+            'val': 'tdfv',
+            'children': [
+                {
+                    'val': 'i2v',
                     'children': []
                 }
             ]
